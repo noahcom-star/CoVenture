@@ -166,7 +166,7 @@ export default function Home() {
               >
                 <h2 className="text-4xl font-bold mb-6 text-[var(--white)]">
                   Built For Teens,<br />
-                  <span className="text-[var(--accent)]">By Teen</span>
+                  <span className="text-[var(--accent)]">By Teen..?</span>
                 </h2>
                 <p className="text-lg text-[var(--slate)] mb-8">
                   We understand the unique challenges teen entrepreneurs face. That's why we've created a platform that provides the perfect environment for innovation, collaboration, and growth.
@@ -208,9 +208,17 @@ export default function Home() {
               >
                 <div className="aspect-square rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent)]/50 p-1">
                   <div className="w-full h-full rounded-xl bg-[var(--navy-dark)] p-6">
-                    {/* Add an image or illustration here */}
-                    <div className="w-full h-full rounded-lg bg-[var(--navy-light)]/50 flex items-center justify-center">
-                      <span className="text-[var(--accent)]">Platform Preview</span>
+                    <div className="w-full h-full rounded-lg bg-[var(--navy-light)]/50 flex flex-col items-center justify-center space-y-4">
+                      <div className="text-center">
+                        <p className="text-[var(--slate)] mb-2">Made by a teen who thought...</p>
+                        <p className="text-lg text-[var(--white)] font-medium mb-4">"Why isn't there a place for us to build cool stuff together?"</p>
+                        <p className="text-[var(--accent)] text-sm">So here we are! 🚀</p>
+                      </div>
+                      <div className="mt-4 flex items-center space-x-2">
+                        <span className="w-2 h-2 bg-[var(--accent)] rounded-full animate-pulse"></span>
+                        <span className="w-2 h-2 bg-[var(--accent)]/60 rounded-full animate-pulse delay-100"></span>
+                        <span className="w-2 h-2 bg-[var(--accent)]/30 rounded-full animate-pulse delay-200"></span>
+                      </div>
                     </div>
                   </div>
                 </div>
