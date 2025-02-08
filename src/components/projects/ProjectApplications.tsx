@@ -182,12 +182,12 @@ export default function ProjectApplications({ projectId, currentUser }: ProjectA
                     }
                   >
                     <ListItemAvatar>
-                      <Avatar src={application.applicant?.avatar_url} />
+                      <Avatar src={application.profiles?.avatar_url} />
                     </ListItemAvatar>
                     <ListItemText
                       primary={
                         <div className="flex items-center gap-2">
-                          <span>{application.applicant?.full_name}</span>
+                          <span>{application.profiles?.full_name}</span>
                           <span className="text-xs text-[var(--slate)]">
                             • Applied {new Date(application.created_at).toLocaleDateString()}
                           </span>
@@ -196,7 +196,7 @@ export default function ProjectApplications({ projectId, currentUser }: ProjectA
                       secondary={
                         <div className="space-y-2 mt-2">
                           <div className="flex flex-wrap gap-4">
-                            {application.applicant?.skills?.map((skill, index) => (
+                            {application.profiles?.skills?.map((skill, index) => (
                               <span key={index} className="text-sm text-[var(--slate)]">
                                 • {skill}
                               </span>
@@ -245,15 +245,15 @@ export default function ProjectApplications({ projectId, currentUser }: ProjectA
         fullWidth
       >
         <DialogTitle>
-          Chat with {selectedApplication?.applicant?.full_name}
+          Chat with {selectedApplication?.profiles?.full_name}
         </DialogTitle>
         <DialogContent>
-          {selectedApplication && selectedApplication.applicant && (
+          {selectedApplication && selectedApplication.profiles && (
             <Chat
               projectId={projectId}
               applicationId={selectedApplication.id}
               currentUser={currentUser}
-              otherUser={selectedApplication.applicant}
+              otherUser={selectedApplication.profiles}
             />
           )}
         </DialogContent>

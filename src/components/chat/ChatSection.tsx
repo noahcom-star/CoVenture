@@ -133,7 +133,7 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
                       <span className="text-lg text-[var(--accent)]">
-                        {user.full_name[0]}
+                        {user.full_name?.[0] || '?'}
                       </span>
                     </div>
                   )}
@@ -170,7 +170,7 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
                       <span className="text-lg text-[var(--accent)]">
-                        {selectedUser.full_name[0]}
+                        {selectedUser.full_name?.[0] || '?'}
                       </span>
                     </div>
                   )}

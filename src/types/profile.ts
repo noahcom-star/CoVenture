@@ -29,6 +29,10 @@ export interface Project {
   created_at: string;
   updated_at: string;
   creator?: UserProfile;
+  project_applications?: ProjectApplication[];
+  project_applications_count?: number;
+  pending_applications_count?: number;
+  accepted_applications_count?: number;
 }
 
 export interface ProjectApplication {
@@ -49,21 +53,9 @@ export interface ProjectApplication {
     team_size: number;
     timeline: string;
     creator_id: string;
-    creator?: {
-      id: string;
-      user_id: string;
-      full_name: string;
-      avatar_url?: string;
-    };
+    creator?: UserProfile;
   };
-  profiles?: {
-    id: string;
-    user_id: string;
-    full_name: string;
-    avatar_url?: string;
-    skills: string[];
-    interests: string[];
-  };
+  profiles?: UserProfile;
 }
 
 export interface ProjectMember {

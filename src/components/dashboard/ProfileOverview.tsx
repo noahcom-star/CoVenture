@@ -39,7 +39,7 @@ export default function ProfileOverview({ profile }: ProfileOverviewProps) {
         </div>
         <div>
           <h3 className="text-lg font-semibold text-[var(--white)]">{profile.full_name}</h3>
-          <p className="text-[var(--slate)] text-sm">Member since {new Date(profile.created_at).toLocaleDateString()}</p>
+          <p className="text-[var(--slate)] text-sm">Member since {profile.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A'}</p>
         </div>
       </div>
 
