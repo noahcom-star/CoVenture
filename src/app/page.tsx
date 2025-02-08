@@ -165,8 +165,8 @@ export default function Home() {
                 viewport={{ once: true }}
               >
                 <h2 className="text-4xl font-bold mb-6 text-[var(--white)]">
-                  Built By Teens,<br />
-                  <span className="text-[var(--accent)]">For Teens</span>
+                  Built For Teens,<br />
+                  <span className="text-[var(--accent)]">By Teen</span>
                 </h2>
                 <p className="text-lg text-[var(--slate)] mb-8">
                   We understand the unique challenges teen entrepreneurs face. That's why we've created a platform that provides the perfect environment for innovation, collaboration, and growth.
@@ -220,7 +220,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Success Stories Section */}
+      {/* Community Section - Replacing Success Stories */}
       <section className="py-24 bg-[var(--navy-dark)]">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
@@ -232,54 +232,80 @@ export default function Home() {
               className="text-center mb-16"
             >
               <h2 className="text-4xl md:text-5xl font-bold mb-6 text-[var(--white)]">
-                Success Stories
+                Join Our Community
               </h2>
               <p className="text-xl text-[var(--slate)] max-w-2xl mx-auto">
-                See how teen entrepreneurs are building amazing projects on CoVenture.
+                Be part of the next generation of innovators and entrepreneurs.
               </p>
             </motion.div>
 
             <div className="grid md:grid-cols-3 gap-8">
-              {[
-                {
-                  name: "Sarah Chen",
-                  project: "EcoTrack",
-                  description: "Found the perfect technical co-founder and launched an environmental impact tracking app.",
-                  achievement: "Featured in Teen Tech Magazine"
-                },
-                {
-                  name: "Alex Rivera",
-                  project: "StudyBuddy AI",
-                  description: "Connected with ML experts and built an AI-powered study assistance platform.",
-                  achievement: "10,000+ Student Users"
-                },
-                {
-                  name: "Maya Patel",
-                  project: "TeenFinance",
-                  description: "Assembled a team of 5 and created a financial literacy app for teenagers.",
-                  achievement: "Won Youth Startup Award"
-                }
-              ].map((story, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.2 }}
-                  viewport={{ once: true }}
-                  className="glass-card p-8 rounded-xl"
-                >
-                  <div className="w-16 h-16 rounded-full bg-[var(--accent)]/10 flex items-center justify-center mb-6">
-                    <span className="text-2xl text-[var(--accent)]">{story.name[0]}</span>
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2 text-[var(--white)]">{story.project}</h3>
-                  <p className="text-[var(--slate)] mb-4">{story.description}</p>
-                  <div className="flex items-center space-x-2">
-                    <SparklesIcon className="w-5 h-5 text-[var(--accent)]" />
-                    <span className="text-sm text-[var(--accent)]">{story.achievement}</span>
-                  </div>
-                </motion.div>
-              ))}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                viewport={{ once: true }}
+                className="glass-card p-8 rounded-xl text-center"
+              >
+                <div className="w-16 h-16 bg-[var(--accent)]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <UserGroupIcon className="w-8 h-8 text-[var(--accent)]" />
+                </div>
+                <h3 className="text-xl font-semibold mb-4 text-[var(--white)]">Find Your Team</h3>
+                <p className="text-[var(--slate)]">
+                  Connect with other teen entrepreneurs who share your passion and complement your skills.
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                viewport={{ once: true }}
+                className="glass-card p-8 rounded-xl text-center"
+              >
+                <div className="w-16 h-16 bg-[var(--accent)]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <SparklesIcon className="w-8 h-8 text-[var(--accent)]" />
+                </div>
+                <h3 className="text-xl font-semibold mb-4 text-[var(--white)]">Share Ideas</h3>
+                <p className="text-[var(--slate)]">
+                  Pitch your innovative ideas and get feedback from like-minded peers.
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+                viewport={{ once: true }}
+                className="glass-card p-8 rounded-xl text-center"
+              >
+                <div className="w-16 h-16 bg-[var(--accent)]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <RocketLaunchIcon className="w-8 h-8 text-[var(--accent)]" />
+                </div>
+                <h3 className="text-xl font-semibold mb-4 text-[var(--white)]">Build Together</h3>
+                <p className="text-[var(--slate)]">
+                  Turn your ideas into reality with collaborative tools and resources designed for teens.
+                </p>
+              </motion.div>
             </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              viewport={{ once: true }}
+              className="text-center mt-12"
+            >
+              <Link href="/auth">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="px-8 py-3 rounded-lg bg-[var(--accent)] text-[var(--navy-dark)] font-semibold hover:opacity-90 transition-all"
+                >
+                  Join Now
+                </motion.button>
+              </Link>
+            </motion.div>
           </div>
         </div>
       </section>
