@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy-dark: #0A192F;
+  --navy-light: #112240;
+  --slate: #8892B0;
+  --light-slate: #CCD6F6;
+  --white: #E6F1FF;
+  --accent: #64FFDA;
+}
+
+body {
+  background-color: var(--navy-dark);
+  color: var(--light-slate);
+}
+
+.hero-grid {
+  background-image: linear-gradient(var(--navy-light) 1px, transparent 1px),
+    linear-gradient(to right, var(--navy-light) 1px, transparent 1px);
+  background-size: 50px 50px;
+  background-position: center center;
+}
+
+.glass-card {
+  background: rgba(17, 34, 64, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(100, 255, 218, 0.1);
+}
+
+/* Carousel text styles */
+.carousel-text-container {
+  position: relative;
+  height: 2.5rem;
+  overflow: hidden;
+}
+
+.carousel-text {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  transition: transform 0.5s ease, opacity 0.5s ease;
+}
+
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(to right, var(--accent), #64B6FF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+} 
