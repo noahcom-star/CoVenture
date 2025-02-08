@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 export default function SignUpForm() {
   const { signUp, loading, error } = useAuth();
+  const router = useRouter();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -48,7 +50,12 @@ export default function SignUpForm() {
       return;
     }
 
-    await signUp(formData.email, formData.password, age);
+    try {
+      await signUp(formData.email, formData.password, age);
+      router.push('/auth/verify');
+    } catch (err) {
+      setValidationError(err instanceof Error ? err.message : 'Failed to sign up');
+    }
   };
 
   return (
