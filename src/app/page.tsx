@@ -208,16 +208,17 @@ export default function Home() {
               >
                 <div className="aspect-square rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent)]/50 p-1">
                   <div className="w-full h-full rounded-xl bg-[var(--navy-dark)] p-6">
-                    <div className="w-full h-full rounded-lg bg-[var(--navy-light)]/50 flex flex-col items-center justify-center space-y-4">
-                      <div className="text-center">
-                        <p className="text-[var(--slate)] mb-2">Made by a teen who thought...</p>
-                        <p className="text-lg text-[var(--white)] font-medium mb-4">"Why isn't there a place for us to build cool stuff together?"</p>
-                        <p className="text-[var(--accent)] text-sm">So here we are! 🚀</p>
-                      </div>
-                      <div className="mt-4 flex items-center space-x-2">
-                        <span className="w-2 h-2 bg-[var(--accent)] rounded-full animate-pulse"></span>
-                        <span className="w-2 h-2 bg-[var(--accent)]/60 rounded-full animate-pulse delay-100"></span>
-                        <span className="w-2 h-2 bg-[var(--accent)]/30 rounded-full animate-pulse delay-200"></span>
+                    <div className="flex flex-col items-center justify-center h-full space-y-8 py-20">
+                      <p className="text-[var(--slate)] text-xl">Made by a teen who thought...</p>
+                      
+                      <h2 className="text-[var(--white)] text-3xl font-semibold text-center max-w-2xl">
+                        "Why isn't there a place for us to build cool stuff together?"
+                      </h2>
+                      
+                      <p className="text-[var(--accent)] text-xl">So here we are! 🚀</p>
+                      
+                      <div className="flex justify-center mt-8">
+                        <div className="w-2 h-2 bg-[var(--accent)] rounded-full animate-pulse"></div>
                       </div>
                     </div>
                   </div>
