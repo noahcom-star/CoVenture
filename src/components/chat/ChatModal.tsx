@@ -49,6 +49,7 @@ export default function ChatModal({
         if (error) throw error;
         console.log('Fetched messages:', data);
         setMessages(data || []);
+        scrollToBottom();
       } catch (error) {
         console.error('Error fetching messages:', error);
         toast.error('Failed to load messages');
@@ -59,8 +60,8 @@ export default function ChatModal({
 
     fetchMessages();
 
-    // Set up real-time subscription for messages
-    const channel = supabase.channel('chat_messages');
+    // Set up real-time subscription for messages with unique channel name
+    const channel = supabase.channel(`room_${chatRoomId}`);
     
     channel
       .on(
@@ -79,11 +80,11 @@ export default function ChatModal({
         }
       )
       .subscribe((status) => {
-        console.log('Subscription status:', status);
+        console.log(`Subscription status for room ${chatRoomId}:`, status);
       });
 
     return () => {
-      console.log('Cleaning up subscription...');
+      console.log(`Unsubscribing from room ${chatRoomId}`);
       channel.unsubscribe();
     };
   }, [chatRoomId]);

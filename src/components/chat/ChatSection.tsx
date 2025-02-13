@@ -11,6 +11,14 @@ interface ChatSectionProps {
   currentUser: UserProfile;
 }
 
+interface ChatMessage {
+  id: string;
+  room_id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+}
+
 interface ChatRoom {
   id: string;
   project_id: string;
@@ -19,15 +27,15 @@ interface ChatRoom {
   updated_at: string;
   project: {
     title: string;
+    creator_id: string;
     creator: UserProfile;
   };
   application: {
+    applicant_id: string;
     applicant: UserProfile;
   };
-  last_message?: {
-    content: string;
-    created_at: string;
-  };
+  chat_messages?: ChatMessage[];
+  last_message?: ChatMessage;
 }
 
 export default function ChatSection({ currentUser }: ChatSectionProps) {
@@ -35,14 +43,88 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchChatRooms = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching chat rooms for user:', currentUser.user_id);
+      
+      // Get all chat rooms where the user is involved
+      const { data: rooms, error } = await supabase
+        .from('chat_rooms')
+        .select(`
+          *,
+          project:projects (
+            title,
+            creator_id,
+            creator:profiles!projects_creator_id_fkey (
+              user_id,
+              full_name,
+              avatar_url
+            )
+          ),
+          application:project_applications (
+            applicant_id,
+            applicant:profiles!project_applications_applicant_id_fkey (
+              user_id,
+              full_name,
+              avatar_url
+            )
+          ),
+          chat_messages (
+            id,
+            content,
+            created_at,
+            sender_id,
+            room_id
+          )
+        `)
+        .order('updated_at', { ascending: false });
+
+      if (error) throw error;
+
+      console.log('Raw chat rooms:', rooms);
+
+      // Filter and process the rooms
+      const processedRooms = rooms
+        ?.filter(room => {
+          // Make sure we have all required data
+          if (!room.project?.creator_id || !room.application?.applicant_id) {
+            return false;
+          }
+          // Check if user is either creator or applicant
+          return room.project.creator_id === currentUser.user_id || 
+                 room.application.applicant_id === currentUser.user_id;
+        })
+        .map(room => {
+          // Sort messages by date and get the latest
+          const sortedMessages = room.chat_messages?.sort((a: ChatMessage, b: ChatMessage) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+          return {
+            ...room,
+            last_message: sortedMessages?.[0]
+          };
+        });
+
+      console.log('Processed chat rooms:', processedRooms);
+      setChatRooms(processedRooms || []);
+    } catch (error) {
+      console.error('Error fetching chat rooms:', error);
+      toast.error('Failed to load chat rooms');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!currentUser) return;
     
     fetchChatRooms();
 
-    // Subscribe to changes in chat rooms
-    const chatRoomsSubscription = supabase
-      .channel('chat-rooms-changes')
+    // Subscribe to both chat rooms and messages
+    const channel = supabase.channel('chat_updates');
+    
+    channel
       .on(
         'postgres_changes',
         {
@@ -67,72 +149,14 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
           fetchChatRooms();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Chat updates subscription status:', status);
+      });
 
     return () => {
-      chatRoomsSubscription.unsubscribe();
+      channel.unsubscribe();
     };
   }, [currentUser]);
-
-  const fetchChatRooms = async () => {
-    try {
-      setLoading(true);
-      console.log('Fetching chat rooms for user:', currentUser.user_id);
-      
-      // First get all chat rooms
-      const { data: rooms, error } = await supabase
-        .from('chat_rooms')
-        .select(`
-          *,
-          project:projects!inner (
-            title,
-            creator_id,
-            creator:profiles!projects_creator_id_fkey (
-              user_id,
-              full_name,
-              avatar_url
-            )
-          ),
-          application:project_applications!inner (
-            applicant_id,
-            applicant:profiles!project_applications_applicant_id_fkey (
-              user_id,
-              full_name,
-              avatar_url
-            )
-          ),
-          chat_messages (
-            id,
-            content,
-            created_at,
-            sender_id
-          )
-        `)
-        .order('updated_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Filter rooms where user is either creator or applicant
-      const processedRooms = rooms
-        ?.filter(room => 
-          room.project?.creator_id === currentUser.user_id || 
-          room.application?.applicant_id === currentUser.user_id
-        )
-        .map(room => ({
-          ...room,
-          last_message: room.chat_messages?.[room.chat_messages.length - 1]
-        }))
-        .filter(room => room.project && room.application);
-
-      console.log('Fetched and processed chat rooms:', processedRooms);
-      setChatRooms(processedRooms || []);
-    } catch (error) {
-      console.error('Error fetching chat rooms:', error);
-      toast.error('Failed to load chat rooms');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getOtherUser = (room: ChatRoom) => {
     const isCreator = room.project.creator.user_id === currentUser.user_id;
