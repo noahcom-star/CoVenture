@@ -61,7 +61,13 @@ export default function ChatModal({
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
+      
+      // Sort messages by timestamp
+      const sortedMessages = (data || []).sort((a, b) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+      
+      setMessages(sortedMessages);
       setIsLoading(false);
       setTimeout(scrollToBottom, 100);
     } catch (error) {
@@ -72,13 +78,11 @@ export default function ChatModal({
 
   const setupRealtimeSubscription = async () => {
     try {
-      // Clean up existing subscription if any
       if (channelRef.current) {
         await channelRef.current.unsubscribe();
         channelRef.current = null;
       }
 
-      // Create new subscription
       const channel = supabase.channel(`room:${chatRoomId}`, {
         config: {
           broadcast: { self: true },
@@ -97,7 +101,13 @@ export default function ChatModal({
           
           if (payload.eventType === 'INSERT') {
             const newMessage = payload.new as ChatMessage;
-            setMessages(prev => [...prev, newMessage]);
+            setMessages(prev => {
+              // Add new message and sort by timestamp
+              const updated = [...prev, newMessage].sort((a, b) => 
+                new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+              );
+              return updated;
+            });
             setTimeout(scrollToBottom, 100);
           }
         })
@@ -124,6 +134,7 @@ export default function ChatModal({
       const messageToSend = newMessage.trim();
       setNewMessage(''); // Clear input immediately
 
+      const now = new Date().toISOString();
       const { data, error } = await supabase
         .from('chat_messages')
         .insert([
@@ -131,6 +142,7 @@ export default function ChatModal({
             room_id: chatRoomId,
             sender_id: currentUser.user_id,
             content: messageToSend,
+            created_at: now // Use client timestamp for immediate feedback
           },
         ])
         .select()
@@ -138,7 +150,14 @@ export default function ChatModal({
 
       if (error) throw error;
 
-      // No need to manually add the message as it will come through the subscription
+      // Optimistically add message to state
+      setMessages(prev => {
+        const updated = [...prev, data].sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+        return updated;
+      });
+      setTimeout(scrollToBottom, 100);
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');

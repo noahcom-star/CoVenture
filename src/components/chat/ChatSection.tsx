@@ -7,101 +7,77 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'react-hot-toast';
 import ChatModal from './ChatModal';
 import { RealtimeChannel } from '@supabase/supabase-js';
-import { useUser } from '@/lib/hooks/useUser';
 
 interface ChatSectionProps {
   currentUser: UserProfile;
 }
 
-interface ChatMessage {
-  id: string;
-  room_id: string;
-  sender_id: string;
-  content: string;
-  created_at: string;
-}
-
 interface ChatRoom {
   id: string;
   title: string;
+  updated_at: string;
   otherUser: {
     user_id: string;
     full_name: string;
     avatar_url: string | null;
+  };
+  lastMessage?: {
+    content: string;
+    created_at: string;
   };
 }
 
 export default function ChatSection({ currentUser }: ChatSectionProps) {
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const { user } = useUser();
-
-  useEffect(() => {
-    if (user) {
-      fetchChatRooms();
-      setupRealtimeSubscription();
-    }
-
-    return () => {
-      if (channelRef.current) {
-        console.log('Cleaning up chat updates subscription');
-        channelRef.current.unsubscribe();
-        channelRef.current = null;
-      }
-    };
-  }, [user]);
 
   const fetchChatRooms = async () => {
-    if (!user) return;
-
     try {
-      const { data: projectChats, error: projectError } = await supabase
+      const { data: rooms, error } = await supabase
         .from('chat_rooms')
         .select(`
           id,
-          title,
-          creator_id,
-          creator:profiles(user_id, full_name, avatar_url)
+          updated_at,
+          project:projects!inner(
+            title,
+            creator:profiles!inner(user_id, full_name, avatar_url)
+          ),
+          application:project_applications!inner(
+            applicant:profiles!inner(user_id, full_name, avatar_url)
+          ),
+          chat_messages:chat_messages(
+            content,
+            created_at
+          )
         `)
-        .eq('creator_id', user.id);
+        .order('updated_at', { ascending: false });
 
-      const { data: applicationChats, error: applicationError } = await supabase
-        .from('chat_rooms')
-        .select(`
-          id,
-          applicant_id,
-          applicant:profiles(user_id, full_name, avatar_url)
-        `)
-        .eq('applicant_id', user.id);
+      if (error) throw error;
 
-      if (projectError) throw projectError;
-      if (applicationError) throw applicationError;
+      const processedRooms: ChatRoom[] = (rooms || []).map(room => {
+        const isCreator = room.project.creator.user_id === currentUser.user_id;
+        const otherUser = isCreator ? room.application.applicant : room.project.creator;
+        const lastMessage = room.chat_messages?.[0];
 
-      const allChats = [
-        ...(projectChats || []).map(chat => ({
-          id: chat.id,
-          title: chat.title,
+        return {
+          id: room.id,
+          title: room.project.title,
+          updated_at: room.updated_at,
           otherUser: {
-            user_id: chat.creator[0]?.user_id,
-            full_name: chat.creator[0]?.full_name,
-            avatar_url: chat.creator[0]?.avatar_url
-          }
-        })),
-        ...(applicationChats || []).map(chat => ({
-          id: chat.id,
-          title: 'Application Chat',
-          otherUser: {
-            user_id: chat.applicant[0]?.user_id,
-            full_name: chat.applicant[0]?.full_name,
-            avatar_url: chat.applicant[0]?.avatar_url
-          }
-        }))
-      ];
+            user_id: otherUser.user_id,
+            full_name: otherUser.full_name,
+            avatar_url: otherUser.avatar_url
+          },
+          lastMessage: lastMessage ? {
+            content: lastMessage.content,
+            created_at: lastMessage.created_at
+          } : undefined
+        };
+      });
 
-      setChatRooms(allChats);
+      setChatRooms(processedRooms);
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching chat rooms:', error);
@@ -111,17 +87,15 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
 
   const setupRealtimeSubscription = async () => {
     try {
-      // Clean up existing subscription if any
       if (channelRef.current) {
         await channelRef.current.unsubscribe();
         channelRef.current = null;
       }
 
-      // Create new subscription
       const channel = supabase.channel('chat_updates', {
         config: {
           broadcast: { self: true },
-          presence: { key: user?.id },
+          presence: { key: currentUser.user_id },
         },
       });
 
@@ -129,19 +103,9 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
         .on('postgres_changes', {
           event: '*',
           schema: 'public',
-          table: 'chat_rooms',
-          filter: `creator_id=eq.${user?.id}`,
+          table: 'chat_messages',
         }, () => {
-          console.log('Chat room changes detected, refreshing...');
-          fetchChatRooms();
-        })
-        .on('postgres_changes', {
-          event: '*',
-          schema: 'public',
-          table: 'chat_rooms',
-          filter: `applicant_id=eq.${user?.id}`,
-        }, () => {
-          console.log('Chat room changes detected, refreshing...');
+          console.log('Chat message changes detected, refreshing rooms...');
           fetchChatRooms();
         })
         .subscribe((status) => {
@@ -159,10 +123,18 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
     }
   };
 
-  const getOtherUser = (room: ChatRoom) => {
-    const isCreator = room.project.creator.user_id === currentUser.user_id;
-    return isCreator ? room.application.applicant : room.project.creator;
-  };
+  useEffect(() => {
+    fetchChatRooms();
+    setupRealtimeSubscription();
+
+    return () => {
+      if (channelRef.current) {
+        console.log('Cleaning up chat updates subscription');
+        channelRef.current.unsubscribe();
+        channelRef.current = null;
+      }
+    };
+  }, [currentUser.user_id]);
 
   if (isLoading) {
     return (
@@ -180,37 +152,34 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
           <h3 className="text-xl font-semibold text-[var(--white)] mb-4">Messages</h3>
           {chatRooms.length > 0 ? (
             <div className="space-y-2">
-              {chatRooms.map((room) => {
-                const otherUser = getOtherUser(room);
-                return (
-                  <motion.button
-                    key={room.id}
-                    onClick={() => setSelectedRoom(room)}
-                    className={`w-full flex items-center p-3 rounded-lg transition-colors ${
-                      selectedRoom?.id === room.id
-                        ? 'bg-[var(--accent)]/20'
-                        : 'hover:bg-[var(--navy-dark)]'
-                    }`}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
-                      <span className="text-lg text-[var(--accent)]">
-                        {otherUser.full_name?.[0] || '?'}
-                      </span>
-                    </div>
-                    <div className="ml-3 text-left">
-                      <h4 className="text-[var(--white)] font-medium">{otherUser.full_name}</h4>
-                      <p className="text-sm text-[var(--slate)] truncate">
-                        {room.project.title}
+              {chatRooms.map((room) => (
+                <motion.button
+                  key={room.id}
+                  onClick={() => setSelectedRoom(room)}
+                  className={`w-full flex items-center p-3 rounded-lg transition-colors ${
+                    selectedRoom?.id === room.id
+                      ? 'bg-[var(--accent)]/20'
+                      : 'hover:bg-[var(--navy-dark)]'
+                  }`}
+                >
+                  <div className="w-10 h-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
+                    <span className="text-lg text-[var(--accent)]">
+                      {room.otherUser.full_name?.[0] || '?'}
+                    </span>
+                  </div>
+                  <div className="ml-3 text-left">
+                    <h4 className="text-[var(--white)] font-medium">{room.otherUser.full_name}</h4>
+                    <p className="text-sm text-[var(--slate)] truncate">
+                      {room.title}
+                    </p>
+                    {room.lastMessage && (
+                      <p className="text-xs text-[var(--slate)] mt-1">
+                        {new Date(room.lastMessage.created_at).toLocaleDateString()}
                       </p>
-                      {room.last_message && (
-                        <p className="text-xs text-[var(--slate)] mt-1">
-                          {new Date(room.last_message.created_at).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
-                  </motion.button>
-                );
-              })}
+                    )}
+                  </div>
+                </motion.button>
+              ))}
             </div>
           ) : (
             <div className="text-center text-[var(--slate)]">
@@ -228,7 +197,7 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
               onClose={() => setSelectedRoom(null)}
               chatRoomId={selectedRoom.id}
               currentUser={currentUser}
-              otherUser={getOtherUser(selectedRoom)}
+              otherUser={selectedRoom.otherUser}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-[var(--slate)]">
