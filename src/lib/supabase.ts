@@ -54,8 +54,30 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 });
 
-// Enable real-time subscriptions for specific tables
-supabase.realtime.setAuth(supabaseAnonKey);
+// Initialize realtime client
+const REALTIME_DEFAULTS = {
+  RECONNECT_INTERVAL: 1000,
+  MAX_RECONNECT_ATTEMPTS: 10,
+};
 
-// Connect to the realtime server
+let reconnectAttempts = 0;
+
+// Handle realtime connection
+supabase.realtime.on('disconnected', () => {
+  console.log('Realtime disconnected, attempting to reconnect...');
+  if (reconnectAttempts < REALTIME_DEFAULTS.MAX_RECONNECT_ATTEMPTS) {
+    setTimeout(() => {
+      console.log('Attempting to reconnect realtime client...');
+      supabase.realtime.connect();
+      reconnectAttempts++;
+    }, REALTIME_DEFAULTS.RECONNECT_INTERVAL);
+  }
+});
+
+supabase.realtime.on('connected', () => {
+  console.log('Realtime connected');
+  reconnectAttempts = 0;
+});
+
+// Connect to realtime
 supabase.realtime.connect(); 

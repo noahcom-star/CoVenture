@@ -32,6 +32,7 @@ export default function ChatModal({
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const channelRef = useRef<any>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -58,43 +59,50 @@ export default function ChatModal({
       }
     };
 
+    const setupRealtimeSubscription = async () => {
+      // Clean up existing subscription if any
+      if (channelRef.current) {
+        await channelRef.current.unsubscribe();
+      }
+
+      // Create new channel for this room
+      const channel = supabase.channel(`room:${chatRoomId}`, {
+        config: {
+          broadcast: { self: true }
+        }
+      });
+
+      channel
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_messages',
+            filter: `room_id=eq.${chatRoomId}`
+          },
+          (payload) => {
+            console.log('New message received:', payload);
+            const newMessage = payload.new as ChatMessage;
+            setMessages(prev => [...prev, newMessage]);
+            scrollToBottom();
+          }
+        )
+        .subscribe((status) => {
+          console.log(`Room ${chatRoomId} subscription status:`, status);
+        });
+
+      channelRef.current = channel;
+    };
+
     fetchMessages();
-
-    // Set up real-time subscription for messages in this room
-    const channel = supabase.channel(`room_${chatRoomId}`, {
-      config: {
-        broadcast: { self: true }
-      }
-    });
-
-    // Subscribe to message inserts for this room
-    channel.on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'chat_messages',
-        filter: `room_id=eq.${chatRoomId}`
-      },
-      (payload) => {
-        console.log('New message received:', payload);
-        const newMessage = payload.new as ChatMessage;
-        setMessages(prev => [...prev, newMessage]);
-        scrollToBottom();
-      }
-    );
-
-    // Subscribe once and handle connection status
-    channel.subscribe((status) => {
-      console.log(`Subscription status for room ${chatRoomId}:`, status);
-      if (status === 'SUBSCRIBED') {
-        console.log(`Successfully subscribed to messages for room ${chatRoomId}`);
-      }
-    });
+    setupRealtimeSubscription();
 
     return () => {
-      console.log(`Cleaning up subscription for room ${chatRoomId}`);
-      channel.unsubscribe();
+      if (channelRef.current) {
+        console.log(`Cleaning up subscription for room ${chatRoomId}`);
+        channelRef.current.unsubscribe();
+      }
     };
   }, [chatRoomId]);
 
@@ -118,6 +126,8 @@ export default function ChatModal({
         .insert(messageToSend);
 
       if (error) throw error;
+      
+      // Clear input field immediately after successful send
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);

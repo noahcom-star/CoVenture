@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { UserProfile } from '@/types/profile';
 import { supabase } from '@/lib/supabase';
@@ -42,17 +42,19 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
   const [loading, setLoading] = useState(true);
+  const channelRef = useRef<any>(null);
 
   const fetchChatRooms = async () => {
     try {
       setLoading(true);
       console.log('Fetching chat rooms for user:', currentUser.user_id);
       
-      // Get all chat rooms where the user is involved (either as creator or applicant)
       const { data: rooms, error } = await supabase
         .from('chat_rooms')
         .select(`
           id,
+          project_id,
+          application_id,
           created_at,
           updated_at,
           project:projects!inner (
@@ -96,7 +98,7 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         ),
         last_message: room.chat_messages?.[0]
-      }));
+      })) as ChatRoom[];
 
       console.log('Processed chat rooms:', processedRooms);
       setChatRooms(processedRooms);
@@ -111,54 +113,59 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
   useEffect(() => {
     if (!currentUser) return;
     
+    const setupRealtimeSubscription = async () => {
+      // Clean up existing subscription if any
+      if (channelRef.current) {
+        await channelRef.current.unsubscribe();
+      }
+
+      // Create new channel for this user's updates
+      const channel = supabase.channel(`user:${currentUser.user_id}`, {
+        config: {
+          broadcast: { self: true }
+        }
+      });
+
+      channel
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'chat_rooms'
+          },
+          () => {
+            console.log('Chat room updated, refreshing...');
+            fetchChatRooms();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_messages'
+          },
+          () => {
+            console.log('New message received, refreshing rooms...');
+            fetchChatRooms();
+          }
+        )
+        .subscribe((status) => {
+          console.log('Chat updates subscription status:', status);
+        });
+
+      channelRef.current = channel;
+    };
+
     fetchChatRooms();
-
-    // Set up a single channel for all chat-related updates
-    const channel = supabase.channel(`chat_updates_${currentUser.user_id}`, {
-      config: {
-        broadcast: { self: true }
-      }
-    });
-
-    // Subscribe to chat_rooms changes
-    channel.on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'chat_rooms'
-      },
-      () => {
-        console.log('Chat room updated, refreshing...');
-        fetchChatRooms();
-      }
-    );
-
-    // Subscribe to chat_messages changes
-    channel.on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'chat_messages'
-      },
-      () => {
-        console.log('New message received, refreshing rooms...');
-        fetchChatRooms();
-      }
-    );
-
-    // Subscribe once and handle connection status
-    channel.subscribe((status) => {
-      console.log('Chat updates subscription status:', status);
-      if (status === 'SUBSCRIBED') {
-        console.log('Successfully subscribed to chat updates');
-      }
-    });
+    setupRealtimeSubscription();
 
     return () => {
-      console.log('Cleaning up chat updates subscription');
-      channel.unsubscribe();
+      if (channelRef.current) {
+        console.log('Cleaning up chat updates subscription');
+        channelRef.current.unsubscribe();
+      }
     };
   }, [currentUser]);
 
