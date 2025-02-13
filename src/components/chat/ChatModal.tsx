@@ -120,7 +120,8 @@ export default function ChatModal({
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.2 }}
-        className="bg-[var(--navy-light)]/90 backdrop-blur-lg rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col"
+        className="relative bg-[var(--navy-light)] rounded-xl shadow-xl w-full max-w-2xl flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Chat Header */}
         <div className="flex items-center justify-between p-4 border-b border-[var(--navy-dark)]">
@@ -145,7 +146,7 @@ export default function ChatModal({
         </div>
 
         {/* Messages */}
-        <div className="h-96 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[400px] max-h-[600px]">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--accent)]" />
@@ -167,7 +168,10 @@ export default function ChatModal({
                       : 'bg-[var(--navy-dark)] text-[var(--white)]'
                   }`}
                 >
-                  {message.content}
+                  <p className="break-words">{message.content}</p>
+                  <span className="text-xs opacity-75 mt-1 block">
+                    {new Date(message.created_at).toLocaleTimeString()}
+                  </span>
                 </div>
               </div>
             ))
@@ -180,7 +184,7 @@ export default function ChatModal({
         </div>
 
         {/* Message Input */}
-        <form onSubmit={sendMessage} className="p-4 border-t border-[var(--navy-dark)]">
+        <form onSubmit={sendMessage} className="p-4 border-t border-[var(--navy-dark)] bg-[var(--navy-light)]">
           <div className="flex space-x-2">
             <input
               type="text"
@@ -192,7 +196,7 @@ export default function ChatModal({
             <button
               type="submit"
               disabled={!newMessage.trim()}
-              className="px-4 py-2 bg-[var(--accent)] text-[var(--navy-dark)] rounded-lg font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-[var(--accent)] text-[var(--navy-dark)] rounded-lg font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
             >
               Send
             </button>
