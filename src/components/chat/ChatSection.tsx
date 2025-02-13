@@ -36,94 +36,57 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchChatRooms();
+    if (!currentUser) return;
     
-    // Subscribe to chat rooms updates
-    const channel = supabase
-      .channel(`user_chats:${currentUser.user_id}`)
+    fetchChatRooms();
+
+    // Subscribe to changes in chat rooms
+    const chatRoomsSubscription = supabase
+      .channel('chat-rooms-changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'chat_rooms',
-          filter: `id=in.(${chatRooms.map(room => room.id).join(',')})`
+          table: 'chat_rooms'
         },
         (payload) => {
-          console.log('Chat room update:', payload);
-          if (payload.eventType === 'UPDATE') {
-            setChatRooms(prev => 
-              prev.map(room => 
-                room.id === payload.new.id 
-                  ? { ...room, ...payload.new }
-                  : room
-              )
-            );
-          }
+          console.log('Chat room change received:', payload);
+          fetchChatRooms();
         }
       )
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'chat_messages'
         },
-        async (payload) => {
-          console.log('New message:', payload);
-          const roomId = payload.new.room_id;
-          // Fetch the updated chat room to get the last message
-          const { data: updatedRoom } = await supabase
-            .from('chat_rooms')
-            .select(`
-              *,
-              project:projects!inner (
-                title,
-                creator:profiles!projects_creator_id_fkey (*)
-              ),
-              application:project_applications!inner (
-                applicant:profiles!project_applications_applicant_id_fkey (*)
-              ),
-              last_message:chat_messages (
-                content,
-                created_at
-              )
-            `)
-            .eq('id', roomId)
-            .single();
-
-          if (updatedRoom) {
-            setChatRooms(prev => 
-              prev.map(room => 
-                room.id === roomId 
-                  ? { ...room, last_message: { 
-                      content: payload.new.content,
-                      created_at: payload.new.created_at
-                    }}
-                  : room
-              )
-            );
-          }
+        (payload) => {
+          console.log('Chat message change received:', payload);
+          fetchChatRooms();
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      chatRoomsSubscription.unsubscribe();
     };
-  }, [currentUser.user_id, chatRooms.map(room => room.id).join(',')]);
+  }, [currentUser]);
 
   const fetchChatRooms = async () => {
     try {
       setLoading(true);
       console.log('Fetching chat rooms for user:', currentUser.user_id);
       
+      // First, get all chat rooms where the user is involved
       const { data: rooms, error } = await supabase
         .from('chat_rooms')
         .select(`
           *,
           project:projects!inner (
             title,
+            creator_id,
             creator:profiles!projects_creator_id_fkey (
               user_id,
               full_name,
@@ -131,25 +94,32 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
             )
           ),
           application:project_applications!inner (
+            applicant_id,
             applicant:profiles!project_applications_applicant_id_fkey (
               user_id,
               full_name,
               avatar_url
             )
           ),
-          last_message:chat_messages (
+          chat_messages!inner (
             content,
             created_at,
             sender_id
           )
         `)
-        .or(`project->creator_id.eq.${currentUser.user_id},application->applicant_id.eq.${currentUser.user_id}`)
+        .or(`project.creator_id.eq.${currentUser.user_id},application.applicant_id.eq.${currentUser.user_id}`)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
 
-      console.log('Fetched chat rooms:', rooms);
-      setChatRooms(rooms || []);
+      // Process the rooms to include the latest message
+      const processedRooms = rooms?.map(room => ({
+        ...room,
+        last_message: room.chat_messages?.[room.chat_messages.length - 1]
+      }));
+
+      console.log('Fetched and processed chat rooms:', processedRooms);
+      setChatRooms(processedRooms || []);
     } catch (error) {
       console.error('Error fetching chat rooms:', error);
       toast.error('Failed to load chat rooms');
@@ -220,17 +190,15 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
         </div>
 
         {/* Chat Area */}
-        <div className="col-span-2 relative">
+        <div className="col-span-2">
           {selectedRoom ? (
-            <div className="absolute inset-0">
-              <ChatModal
-                isOpen={!!selectedRoom}
-                onClose={() => setSelectedRoom(null)}
-                chatRoomId={selectedRoom.id}
-                currentUser={currentUser}
-                otherUser={getOtherUser(selectedRoom)}
-              />
-            </div>
+            <ChatModal
+              isOpen={true}
+              onClose={() => setSelectedRoom(null)}
+              chatRoomId={selectedRoom.id}
+              currentUser={currentUser}
+              otherUser={getOtherUser(selectedRoom)}
+            />
           ) : (
             <div className="flex items-center justify-center h-full text-[var(--slate)]">
               Select a conversation to start chatting

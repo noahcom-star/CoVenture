@@ -33,8 +33,10 @@ export default function ChatButton({ currentUser, otherUser, projectId, applicat
         throw findError;
       }
 
+      let roomId;
       if (existingRoom) {
-        setChatRoomId(existingRoom.id);
+        roomId = existingRoom.id;
+        console.log('Found existing chat room:', existingRoom);
       } else {
         // Create a new chat room if one doesn't exist
         const { data: newRoom, error: createError } = await supabase
@@ -49,26 +51,28 @@ export default function ChatButton({ currentUser, otherUser, projectId, applicat
           .single();
 
         if (createError) throw createError;
-        if (newRoom) setChatRoomId(newRoom.id);
+        if (!newRoom) throw new Error('Failed to create chat room');
+        
+        roomId = newRoom.id;
+        console.log('Created new chat room:', newRoom);
       }
 
+      setChatRoomId(roomId);
       setIsModalOpen(true);
     } catch (error) {
       console.error('Error handling chat:', error);
+      toast.error('Failed to open chat');
     }
   };
 
   return (
     <>
-      <motion.button
+      <button
         onClick={handleOpenChat}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        className="flex items-center space-x-2 px-3 py-2 bg-[var(--accent)]/10 text-[var(--accent)] rounded-lg hover:bg-[var(--accent)]/20 transition-all"
+        className="p-2 bg-[var(--accent)]/10 text-[var(--accent)] rounded-lg hover:bg-[var(--accent)]/20 transition-colors"
       >
         <ChatBubbleLeftRightIcon className="w-5 h-5" />
-        <span className="text-sm font-medium">Chat</span>
-      </motion.button>
+      </button>
 
       {isModalOpen && chatRoomId && (
         <ChatModal
