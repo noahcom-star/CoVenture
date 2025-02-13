@@ -84,12 +84,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('You must be between 13 and 19 years old to sign up.');
       }
 
+      // Get the site URL from environment or window location
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 
+                     (typeof window !== 'undefined' ? window.location.origin : 'https://coventure-ek4gx20uf-noahcom-stars-projects.vercel.app');
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: { age },
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://coventure-ek4gx20uf-noahcom-stars-projects.vercel.app'}/auth/callback`
+          emailRedirectTo: `${siteUrl}/auth/callback`
         },
       });
 
