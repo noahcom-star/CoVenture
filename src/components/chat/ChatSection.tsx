@@ -57,33 +57,33 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
           application_id,
           created_at,
           updated_at,
-          project:projects!inner (
+          project:projects(
             id,
             title,
             creator_id,
-            creator:profiles!inner (
+            creator:profiles(
               user_id,
               full_name,
               avatar_url
             )
           ),
-          application:project_applications!inner (
+          application:project_applications(
             id,
             applicant_id,
-            applicant:profiles!inner (
+            applicant:profiles(
               user_id,
               full_name,
               avatar_url
             )
           ),
-          chat_messages (
+          chat_messages(
             id,
             content,
             created_at,
             sender_id
           )
         `)
-        .or(`project.creator_id.eq.${currentUser.user_id},application.applicant_id.eq.${currentUser.user_id}`)
+        .or(`project->creator_id.eq.${currentUser.user_id},application->applicant_id.eq.${currentUser.user_id}`)
         .order('updated_at', { ascending: false });
 
       if (error) {
@@ -92,16 +92,33 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
       }
 
       // Process and sort messages for each room
-      const processedRooms = rooms?.map(room => ({
-        ...room,
-        chat_messages: room.chat_messages?.sort((a, b) => 
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        ),
-        last_message: room.chat_messages?.[0]
-      }));
+      const processedRooms = (rooms || []).map(room => {
+        // Ensure we have the correct structure
+        const processedRoom: ChatRoom = {
+          id: room.id,
+          project_id: room.project_id,
+          application_id: room.application_id,
+          created_at: room.created_at,
+          updated_at: room.updated_at,
+          project: {
+            title: room.project?.title || '',
+            creator_id: room.project?.creator_id || '',
+            creator: room.project?.creator || { user_id: '', full_name: '', avatar_url: '' }
+          },
+          application: {
+            applicant_id: room.application?.applicant_id || '',
+            applicant: room.application?.applicant || { user_id: '', full_name: '', avatar_url: '' }
+          },
+          chat_messages: room.chat_messages?.sort((a, b) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          ) || [],
+          last_message: room.chat_messages?.[0]
+        };
+        return processedRoom;
+      });
 
       console.log('Processed chat rooms:', processedRooms);
-      setChatRooms(processedRooms || []);
+      setChatRooms(processedRooms);
     } catch (error) {
       console.error('Error fetching chat rooms:', error);
       toast.error('Failed to load chat rooms');
@@ -142,7 +159,7 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
         .on(
           'postgres_changes',
           {
-            event: 'INSERT',
+            event: '*',
             schema: 'public',
             table: 'chat_messages'
           },

@@ -66,7 +66,7 @@ export default function ChatModal({
       }
 
       // Create new channel for this room
-      const channel = supabase.channel(`chat:${chatRoomId}`, {
+      const channel = supabase.channel(`room:${chatRoomId}`, {
         config: {
           broadcast: { self: true }
         }
@@ -75,16 +75,18 @@ export default function ChatModal({
       channel.on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'chat_messages',
           filter: `room_id=eq.${chatRoomId}`
         },
         (payload) => {
-          console.log('New message received:', payload);
-          const newMessage = payload.new as ChatMessage;
-          setMessages(prev => [...prev, newMessage]);
-          scrollToBottom();
+          console.log('Message change detected:', payload);
+          if (payload.eventType === 'INSERT') {
+            const newMessage = payload.new as ChatMessage;
+            setMessages(prev => [...prev, newMessage]);
+            scrollToBottom();
+          }
         }
       );
 
@@ -122,14 +124,22 @@ export default function ChatModal({
         content: newMessage.trim(),
       };
 
-      const { error } = await supabase
+      // Clear input field immediately
+      setNewMessage('');
+
+      const { data, error } = await supabase
         .from('chat_messages')
-        .insert(messageToSend);
+        .insert(messageToSend)
+        .select()
+        .single();
 
       if (error) throw error;
-      
-      // Clear input field immediately after successful send
-      setNewMessage('');
+
+      // Add the new message to the local state immediately
+      if (data) {
+        setMessages(prev => [...prev, data]);
+        scrollToBottom();
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
