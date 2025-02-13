@@ -220,15 +220,17 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
         </div>
 
         {/* Chat Area */}
-        <div className="col-span-2">
+        <div className="col-span-2 relative">
           {selectedRoom ? (
-            <ChatModal
-              isOpen={true}
-              onClose={() => setSelectedRoom(null)}
-              chatRoomId={selectedRoom.id}
-              currentUser={currentUser}
-              otherUser={getOtherUser(selectedRoom)}
-            />
+            <div className="absolute inset-0">
+              <ChatModal
+                isOpen={!!selectedRoom}
+                onClose={() => setSelectedRoom(null)}
+                chatRoomId={selectedRoom.id}
+                currentUser={currentUser}
+                otherUser={getOtherUser(selectedRoom)}
+              />
+            </div>
           ) : (
             <div className="flex items-center justify-center h-full text-[var(--slate)]">
               Select a conversation to start chatting
