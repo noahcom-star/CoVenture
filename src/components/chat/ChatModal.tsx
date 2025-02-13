@@ -59,10 +59,10 @@ export default function ChatModal({
 
     fetchMessages();
 
-    // Set up real-time subscription
-    const channelA = supabase.channel('chat_messages');
+    // Set up real-time subscription for messages
+    const channel = supabase.channel('chat_messages');
     
-    channelA
+    channel
       .on(
         'postgres_changes',
         {
@@ -73,17 +73,18 @@ export default function ChatModal({
         },
         (payload) => {
           console.log('New message received:', payload);
-          // Add the new message to the messages array
-          setMessages(prev => [...prev, payload.new as ChatMessage]);
+          const newMessage = payload.new as ChatMessage;
+          setMessages(prev => [...prev, newMessage]);
+          scrollToBottom();
         }
       )
       .subscribe((status) => {
-        console.log(`Subscription status for ${chatRoomId}:`, status);
+        console.log('Subscription status:', status);
       });
 
     return () => {
       console.log('Cleaning up subscription...');
-      channelA.unsubscribe();
+      channel.unsubscribe();
     };
   }, [chatRoomId]);
 
@@ -102,19 +103,11 @@ export default function ChatModal({
         content: newMessage.trim(),
       };
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('chat_messages')
-        .insert(messageToSend)
-        .select()
-        .single();
+        .insert(messageToSend);
 
       if (error) throw error;
-
-      // Optimistically add the message to the UI
-      if (data) {
-        setMessages(prev => [...prev, data]);
-      }
-      
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
@@ -160,75 +153,59 @@ export default function ChatModal({
             </div>
 
             {/* Messages */}
-            <div className="h-full flex flex-col">
-              {/* Messages Container */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {loading ? (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--accent)]" />
-                  </div>
-                ) : messages.length > 0 ? (
-                  messages.map((message) => (
+            <div className="h-96 overflow-y-auto p-4 space-y-4">
+              {loading ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--accent)]" />
+                </div>
+              ) : messages.length > 0 ? (
+                messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${
+                      message.sender_id === currentUser.user_id
+                        ? 'justify-end'
+                        : 'justify-start'
+                    }`}
+                  >
                     <div
-                      key={message.id}
-                      className={`flex ${
+                      className={`max-w-[70%] p-3 rounded-lg ${
                         message.sender_id === currentUser.user_id
-                          ? 'justify-end'
-                          : 'justify-start'
+                          ? 'bg-[var(--accent)] text-[var(--navy-dark)]'
+                          : 'bg-[var(--navy-dark)] text-[var(--white)]'
                       }`}
                     >
-                      <div className="flex flex-col">
-                        <div
-                          className={`max-w-[70%] p-3 rounded-lg ${
-                            message.sender_id === currentUser.user_id
-                              ? 'bg-[var(--accent)] text-[var(--navy-dark)]'
-                              : 'bg-[var(--navy-dark)] text-[var(--white)]'
-                          }`}
-                        >
-                          {message.content}
-                        </div>
-                        <span className={`text-xs text-[var(--slate)] mt-1 ${
-                          message.sender_id === currentUser.user_id
-                            ? 'text-right'
-                            : 'text-left'
-                        }`}>
-                          {new Date(message.created_at).toLocaleTimeString([], { 
-                            hour: '2-digit', 
-                            minute: '2-digit',
-                            hour12: true 
-                          })}
-                        </span>
-                      </div>
+                      {message.content}
                     </div>
-                  ))
-                ) : (
-                  <div className="flex items-center justify-center h-full text-[var(--slate)]">
-                    No messages yet. Start the conversation!
                   </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Message Input */}
-              <div className="p-4 border-t border-[var(--navy-dark)]">
-                <form onSubmit={sendMessage} className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Type a message..."
-                    className="flex-1 bg-[var(--navy-dark)] text-[var(--white)] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!newMessage.trim()}
-                    className="bg-[var(--accent)] text-[var(--navy-dark)] px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Send
-                  </button>
-                </form>
-              </div>
+                ))
+              ) : (
+                <div className="flex items-center justify-center h-full text-[var(--slate)]">
+                  No messages yet. Start the conversation!
+                </div>
+              )}
+              <div ref={messagesEndRef} />
             </div>
+
+            {/* Message Input */}
+            <form onSubmit={sendMessage} className="p-4 border-t border-[var(--navy-dark)]">
+              <div className="flex space-x-2">
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type a message..."
+                  className="flex-1 bg-[var(--navy-dark)] text-[var(--white)] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50"
+                />
+                <button
+                  type="submit"
+                  disabled={!newMessage.trim()}
+                  className="px-4 py-2 bg-[var(--accent)] text-[var(--navy-dark)] rounded-lg font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Send
+                </button>
+              </div>
+            </form>
           </motion.div>
         </motion.div>
       )}
