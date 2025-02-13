@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password,
         options: {
           data: { age },
-          emailRedirectTo: `${window.location.origin}/auth/callback`
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://coventure-ek4gx20uf-noahcom-stars-projects.vercel.app'}/auth/callback`
         },
       });
 

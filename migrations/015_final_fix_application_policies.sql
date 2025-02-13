@@ -31,3 +31,5 @@ ALTER TABLE project_applications ENABLE ROW LEVEL SECURITY;
 
 -- Grant necessary privileges
 GRANT ALL ON project_applications TO authenticated; 
+ 
+ 
