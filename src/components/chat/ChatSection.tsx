@@ -6,6 +6,8 @@ import { UserProfile } from '@/types/profile';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'react-hot-toast';
 import ChatModal from './ChatModal';
+import { RealtimeChannel } from '@supabase/supabase-js';
+import { useUser } from '@/lib/hooks/useUser';
 
 interface ChatSectionProps {
   currentUser: UserProfile;
@@ -21,187 +23,148 @@ interface ChatMessage {
 
 interface ChatRoom {
   id: string;
-  project_id: string;
-  application_id: string;
-  created_at: string;
-  updated_at: string;
-  project: {
-    title: string;
-    creator_id: string;
-    creator: UserProfile;
+  title: string;
+  otherUser: {
+    user_id: string;
+    full_name: string;
+    avatar_url: string | null;
   };
-  application: {
-    applicant_id: string;
-    applicant: UserProfile;
-  };
-  chat_messages?: ChatMessage[];
-  last_message?: ChatMessage;
 }
 
 export default function ChatSection({ currentUser }: ChatSectionProps) {
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
-  const [loading, setLoading] = useState(true);
-  const channelRef = useRef<any>(null);
-
-  const fetchChatRooms = async () => {
-    try {
-      setLoading(true);
-      console.log('Fetching chat rooms for user:', currentUser.user_id);
-      
-      const { data: rooms, error } = await supabase
-        .from('chat_rooms')
-        .select(`
-          id,
-          project_id,
-          application_id,
-          created_at,
-          updated_at,
-          project:projects(
-            id,
-            title,
-            creator_id,
-            creator:profiles(
-              user_id,
-              full_name,
-              avatar_url
-            )
-          ),
-          application:project_applications(
-            id,
-            applicant_id,
-            applicant:profiles(
-              user_id,
-              full_name,
-              avatar_url
-            )
-          ),
-          chat_messages(
-            id,
-            content,
-            created_at,
-            sender_id
-          )
-        `)
-        .or(`project->creator_id.eq.${currentUser.user_id},application->applicant_id.eq.${currentUser.user_id}`)
-        .order('updated_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching chat rooms:', error);
-        throw error;
-      }
-
-      // Process and sort messages for each room
-      const processedRooms = (rooms || []).map(room => {
-        // Ensure we have the correct structure
-        const processedRoom: ChatRoom = {
-          id: room.id,
-          project_id: room.project_id,
-          application_id: room.application_id,
-          created_at: room.created_at,
-          updated_at: room.updated_at,
-          project: {
-            title: room.project?.title || '',
-            creator_id: room.project?.creator_id || '',
-            creator: room.project?.creator || { user_id: '', full_name: '', avatar_url: '' }
-          },
-          application: {
-            applicant_id: room.application?.applicant_id || '',
-            applicant: room.application?.applicant || { user_id: '', full_name: '', avatar_url: '' }
-          },
-          chat_messages: room.chat_messages?.sort((a, b) => 
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          ) || [],
-          last_message: room.chat_messages?.[0]
-        };
-        return processedRoom;
-      });
-
-      console.log('Processed chat rooms:', processedRooms);
-      setChatRooms(processedRooms);
-    } catch (error) {
-      console.error('Error fetching chat rooms:', error);
-      toast.error('Failed to load chat rooms');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const channelRef = useRef<RealtimeChannel | null>(null);
+  const { user } = useUser();
 
   useEffect(() => {
-    if (!currentUser) return;
-    
-    const setupRealtimeSubscription = async () => {
-      try {
-        // Clean up existing subscription if any
-        if (channelRef.current) {
-          await channelRef.current.unsubscribe();
-        }
-
-        // Create new channel for chat updates
-        const channel = supabase.channel('chat_updates', {
-          config: {
-            broadcast: { self: true },
-            presence: { key: currentUser.user_id }
-          }
-        });
-
-        // Subscribe to chat room changes
-        channel
-          .on(
-            'postgres_changes',
-            {
-              event: 'INSERT',
-              schema: 'public',
-              table: 'chat_messages'
-            },
-            (payload) => {
-              console.log('New message received in any room:', payload);
-              fetchChatRooms();
-            }
-          )
-          .on(
-            'postgres_changes',
-            {
-              event: 'UPDATE',
-              schema: 'public',
-              table: 'chat_rooms'
-            },
-            (payload) => {
-              console.log('Chat room updated:', payload);
-              fetchChatRooms();
-            }
-          );
-
-        // Subscribe and log the status
-        const status = await channel.subscribe(async (status) => {
-          console.log('Chat updates subscription status:', status);
-        });
-
-        console.log('Chat updates subscription successful:', status);
-        channelRef.current = channel;
-      } catch (error) {
-        console.error('Error in setupRealtimeSubscription:', error);
-        toast.error('Failed to connect to chat updates');
-      }
-    };
-
-    fetchChatRooms();
-    setupRealtimeSubscription();
+    if (user) {
+      fetchChatRooms();
+      setupRealtimeSubscription();
+    }
 
     return () => {
       if (channelRef.current) {
         console.log('Cleaning up chat updates subscription');
         channelRef.current.unsubscribe();
+        channelRef.current = null;
       }
     };
-  }, [currentUser]);
+  }, [user]);
+
+  const fetchChatRooms = async () => {
+    if (!user) return;
+
+    try {
+      const { data: projectChats, error: projectError } = await supabase
+        .from('chat_rooms')
+        .select(`
+          id,
+          title,
+          creator_id,
+          creator:profiles(user_id, full_name, avatar_url)
+        `)
+        .eq('creator_id', user.id);
+
+      const { data: applicationChats, error: applicationError } = await supabase
+        .from('chat_rooms')
+        .select(`
+          id,
+          applicant_id,
+          applicant:profiles(user_id, full_name, avatar_url)
+        `)
+        .eq('applicant_id', user.id);
+
+      if (projectError) throw projectError;
+      if (applicationError) throw applicationError;
+
+      const allChats = [
+        ...(projectChats || []).map(chat => ({
+          id: chat.id,
+          title: chat.title,
+          otherUser: {
+            user_id: chat.creator[0]?.user_id,
+            full_name: chat.creator[0]?.full_name,
+            avatar_url: chat.creator[0]?.avatar_url
+          }
+        })),
+        ...(applicationChats || []).map(chat => ({
+          id: chat.id,
+          title: 'Application Chat',
+          otherUser: {
+            user_id: chat.applicant[0]?.user_id,
+            full_name: chat.applicant[0]?.full_name,
+            avatar_url: chat.applicant[0]?.avatar_url
+          }
+        }))
+      ];
+
+      setChatRooms(allChats);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error fetching chat rooms:', error);
+      toast.error('Failed to load chat rooms');
+    }
+  };
+
+  const setupRealtimeSubscription = async () => {
+    try {
+      // Clean up existing subscription if any
+      if (channelRef.current) {
+        await channelRef.current.unsubscribe();
+        channelRef.current = null;
+      }
+
+      // Create new subscription
+      const channel = supabase.channel('chat_updates', {
+        config: {
+          broadcast: { self: true },
+          presence: { key: user?.id },
+        },
+      });
+
+      channel
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'chat_rooms',
+          filter: `creator_id=eq.${user?.id}`,
+        }, () => {
+          console.log('Chat room changes detected, refreshing...');
+          fetchChatRooms();
+        })
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'chat_rooms',
+          filter: `applicant_id=eq.${user?.id}`,
+        }, () => {
+          console.log('Chat room changes detected, refreshing...');
+          fetchChatRooms();
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('Successfully subscribed to chat updates');
+          } else {
+            console.log('Subscription status:', status);
+          }
+        });
+
+      channelRef.current = channel;
+    } catch (error) {
+      console.error('Error setting up real-time subscription:', error);
+      toast.error('Failed to connect to chat updates');
+    }
+  };
 
   const getOtherUser = (room: ChatRoom) => {
     const isCreator = room.project.creator.user_id === currentUser.user_id;
     return isCreator ? room.application.applicant : room.project.creator;
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[600px] bg-[var(--navy-light)]/50 backdrop-blur-lg rounded-xl p-6">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--accent)]" />

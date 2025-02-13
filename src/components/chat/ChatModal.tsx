@@ -4,6 +4,7 @@ import { UserProfile } from '@/types/profile';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface ChatModalProps {
   isOpen: boolean;
@@ -30,123 +31,114 @@ export default function ChatModal({
 }: ChatModalProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const channelRef = useRef<any>(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   useEffect(() => {
-    const fetchMessages = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('chat_messages')
-          .select('*')
-          .eq('room_id', chatRoomId)
-          .order('created_at', { ascending: true });
-
-        if (error) throw error;
-        console.log('Fetched messages:', data);
-        setMessages(data || []);
-        scrollToBottom();
-      } catch (error) {
-        console.error('Error fetching messages:', error);
-        toast.error('Failed to load messages');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const setupRealtimeSubscription = async () => {
-      try {
-        // Clean up existing subscription if any
-        if (channelRef.current) {
-          await channelRef.current.unsubscribe();
-        }
-
-        // Create new channel for this room
-        const channel = supabase.channel(`room_${chatRoomId}`, {
-          config: {
-            broadcast: { self: true },
-            presence: { key: currentUser.user_id }
-          }
-        });
-
-        // Subscribe to all message changes for this room
-        channel
-          .on(
-            'postgres_changes',
-            {
-              event: 'INSERT',
-              schema: 'public',
-              table: 'chat_messages',
-              filter: `room_id=eq.${chatRoomId}`
-            },
-            (payload) => {
-              console.log('New message received:', payload);
-              const newMessage = payload.new as ChatMessage;
-              setMessages(prev => [...prev, newMessage]);
-              scrollToBottom();
-            }
-          );
-
-        // Subscribe and log the status
-        const status = await channel.subscribe(async (status) => {
-          console.log(`Subscription status for room ${chatRoomId}:`, status);
-        });
-
-        console.log('Channel subscription successful:', status);
-        channelRef.current = channel;
-      } catch (error) {
-        console.error('Error in setupRealtimeSubscription:', error);
-        toast.error('Failed to connect to chat room');
-      }
-    };
-
     fetchMessages();
     setupRealtimeSubscription();
 
     return () => {
       if (channelRef.current) {
-        console.log(`Cleaning up subscription for room ${chatRoomId}`);
+        console.log('Cleaning up subscription for room:', chatRoomId);
         channelRef.current.unsubscribe();
+        channelRef.current = null;
       }
     };
   }, [chatRoomId]);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const fetchMessages = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('room_id', chatRoomId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setMessages(data || []);
+      setIsLoading(false);
+      setTimeout(scrollToBottom, 100);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      toast.error('Failed to load messages');
+    }
+  };
+
+  const setupRealtimeSubscription = async () => {
+    try {
+      // Clean up existing subscription if any
+      if (channelRef.current) {
+        await channelRef.current.unsubscribe();
+        channelRef.current = null;
+      }
+
+      // Create new subscription
+      const channel = supabase.channel(`room:${chatRoomId}`, {
+        config: {
+          broadcast: { self: true },
+          presence: { key: currentUser.user_id },
+        },
+      });
+
+      channel
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `room_id=eq.${chatRoomId}`,
+        }, (payload) => {
+          console.log('Message change received:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            const newMessage = payload.new as ChatMessage;
+            setMessages(prev => [...prev, newMessage]);
+            setTimeout(scrollToBottom, 100);
+          }
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('Successfully subscribed to chat updates');
+          } else {
+            console.log('Subscription status:', status);
+          }
+        });
+
+      channelRef.current = channel;
+    } catch (error) {
+      console.error('Error setting up real-time subscription:', error);
+      toast.error('Failed to connect to chat');
+    }
+  };
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
 
     try {
-      const messageToSend = {
-        room_id: chatRoomId,
-        sender_id: currentUser.user_id,
-        content: newMessage.trim(),
-      };
-
-      // Clear input field immediately
-      setNewMessage('');
+      const messageToSend = newMessage.trim();
+      setNewMessage(''); // Clear input immediately
 
       const { data, error } = await supabase
         .from('chat_messages')
-        .insert(messageToSend)
+        .insert([
+          {
+            room_id: chatRoomId,
+            sender_id: currentUser.user_id,
+            content: messageToSend,
+          },
+        ])
         .select()
         .single();
 
       if (error) throw error;
 
-      // Add the new message to the local state immediately
-      if (data) {
-        setMessages(prev => [...prev, data]);
-        scrollToBottom();
-      }
+      // No need to manually add the message as it will come through the subscription
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
@@ -192,7 +184,7 @@ export default function ChatModal({
 
             {/* Messages */}
             <div className="h-96 overflow-y-auto p-4 space-y-4">
-              {loading ? (
+              {isLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--accent)]" />
                 </div>
