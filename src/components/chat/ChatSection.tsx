@@ -38,47 +38,80 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
   useEffect(() => {
     fetchChatRooms();
     
-    // Subscribe to both chat rooms and messages updates
-    const chatRoomsSubscription = supabase
-      .channel(`chat_rooms:${currentUser.user_id}`)
+    // Subscribe to chat rooms updates
+    const channel = supabase
+      .channel(`user_chats:${currentUser.user_id}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'chat_rooms'
+          table: 'chat_rooms',
+          filter: `id=in.(${chatRooms.map(room => room.id).join(',')})`
         },
         (payload) => {
           console.log('Chat room update:', payload);
-          fetchChatRooms();
+          if (payload.eventType === 'UPDATE') {
+            setChatRooms(prev => 
+              prev.map(room => 
+                room.id === payload.new.id 
+                  ? { ...room, ...payload.new }
+                  : room
+              )
+            );
+          }
         }
       )
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'chat_messages'
         },
-        (payload) => {
-          console.log('Chat message update:', payload);
-          fetchChatRooms();
+        async (payload) => {
+          console.log('New message:', payload);
+          const roomId = payload.new.room_id;
+          // Fetch the updated chat room to get the last message
+          const { data: updatedRoom } = await supabase
+            .from('chat_rooms')
+            .select(`
+              *,
+              project:projects!inner (
+                title,
+                creator:profiles!projects_creator_id_fkey (*)
+              ),
+              application:project_applications!inner (
+                applicant:profiles!project_applications_applicant_id_fkey (*)
+              ),
+              last_message:chat_messages (
+                content,
+                created_at
+              )
+            `)
+            .eq('id', roomId)
+            .single();
+
+          if (updatedRoom) {
+            setChatRooms(prev => 
+              prev.map(room => 
+                room.id === roomId 
+                  ? { ...room, last_message: { 
+                      content: payload.new.content,
+                      created_at: payload.new.created_at
+                    }}
+                  : room
+              )
+            );
+          }
         }
       )
-      .subscribe((status) => {
-        console.log('Chat rooms subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to chat room updates');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('Failed to subscribe to chat room updates');
-          toast.error('Failed to connect to chat. Please refresh the page.');
-        }
-      });
+      .subscribe();
 
     return () => {
-      chatRoomsSubscription.unsubscribe();
+      supabase.removeChannel(channel);
     };
-  }, [currentUser.user_id]);
+  }, [currentUser.user_id, chatRooms.map(room => room.id).join(',')]);
 
   const fetchChatRooms = async () => {
     try {
