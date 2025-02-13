@@ -61,7 +61,7 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
             id,
             title,
             creator_id,
-            creator:profiles!projects_creator_id_fkey (
+            creator:profiles!inner (
               user_id,
               full_name,
               avatar_url
@@ -70,7 +70,7 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
           application:project_applications!inner (
             id,
             applicant_id,
-            applicant:profiles!project_applications_applicant_id_fkey (
+            applicant:profiles!inner (
               user_id,
               full_name,
               avatar_url
@@ -92,16 +92,16 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
       }
 
       // Process and sort messages for each room
-      const processedRooms = (rooms || []).map(room => ({
+      const processedRooms = rooms?.map(room => ({
         ...room,
         chat_messages: room.chat_messages?.sort((a, b) => 
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         ),
         last_message: room.chat_messages?.[0]
-      })) as ChatRoom[];
+      }));
 
       console.log('Processed chat rooms:', processedRooms);
-      setChatRooms(processedRooms);
+      setChatRooms(processedRooms || []);
     } catch (error) {
       console.error('Error fetching chat rooms:', error);
       toast.error('Failed to load chat rooms');
@@ -119,8 +119,8 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
         await channelRef.current.unsubscribe();
       }
 
-      // Create new channel for this user's updates
-      const channel = supabase.channel(`user:${currentUser.user_id}`, {
+      // Create new channel for chat updates
+      const channel = supabase.channel('chat_updates', {
         config: {
           broadcast: { self: true }
         }
@@ -150,11 +150,13 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
             console.log('New message received, refreshing rooms...');
             fetchChatRooms();
           }
-        )
-        .subscribe((status) => {
-          console.log('Chat updates subscription status:', status);
-        });
+        );
 
+      // Subscribe to the channel
+      const status = await channel.subscribe();
+      console.log('Chat updates subscription status:', status);
+      
+      // Store the channel reference
       channelRef.current = channel;
     };
 

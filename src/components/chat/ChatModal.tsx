@@ -66,32 +66,33 @@ export default function ChatModal({
       }
 
       // Create new channel for this room
-      const channel = supabase.channel(`room:${chatRoomId}`, {
+      const channel = supabase.channel(`chat:${chatRoomId}`, {
         config: {
           broadcast: { self: true }
         }
       });
 
-      channel
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'chat_messages',
-            filter: `room_id=eq.${chatRoomId}`
-          },
-          (payload) => {
-            console.log('New message received:', payload);
-            const newMessage = payload.new as ChatMessage;
-            setMessages(prev => [...prev, newMessage]);
-            scrollToBottom();
-          }
-        )
-        .subscribe((status) => {
-          console.log(`Room ${chatRoomId} subscription status:`, status);
-        });
+      channel.on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `room_id=eq.${chatRoomId}`
+        },
+        (payload) => {
+          console.log('New message received:', payload);
+          const newMessage = payload.new as ChatMessage;
+          setMessages(prev => [...prev, newMessage]);
+          scrollToBottom();
+        }
+      );
 
+      // Subscribe to the channel
+      const status = await channel.subscribe();
+      console.log(`Room ${chatRoomId} subscription status:`, status);
+      
+      // Store the channel reference
       channelRef.current = channel;
     };
 
