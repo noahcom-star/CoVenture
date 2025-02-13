@@ -11,6 +11,7 @@ import {
   UserCircleIcon
 } from '@heroicons/react/24/outline';
 import { Tab } from '@headlessui/react';
+import ChatButton from '@/components/chat/ChatButton';
 
 interface ApplicationsSectionProps {
   currentUser: UserProfile;
@@ -163,10 +164,19 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
             });
 
           if (memberError) throw memberError;
+          
+          // Show success message with chat prompt
+          toast.success(
+            <div>
+              <p>Application accepted! 🎉</p>
+              <p className="text-sm mt-1">Click the chat button to discuss project details</p>
+            </div>
+          );
         }
+      } else {
+        toast.success(`Application ${status}`);
       }
-
-      toast.success(`Application ${status}`);
+      
       await fetchApplications();
     } catch (error) {
       console.error('Error updating application:', error);
@@ -273,7 +283,7 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                           rel="noopener noreferrer"
                           className="text-[var(--accent)] hover:underline"
                         >
-                          LinkedIn Profile
+                          LinkedIn
                         </a>
                       )}
                       {application.github_url && (
@@ -283,9 +293,45 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                           rel="noopener noreferrer"
                           className="text-[var(--accent)] hover:underline"
                         >
-                          GitHub Profile
+                          GitHub
                         </a>
                       )}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-4 border-t border-[var(--navy-dark)]">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
+                          <UserCircleIcon className="w-5 h-5 text-[var(--accent)]" />
+                        </div>
+                        <div>
+                          <p className="text-[var(--white)] font-medium">
+                            {application.projects?.creator?.full_name}
+                          </p>
+                          <p className="text-[var(--slate)] text-sm">Project Creator</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center text-[var(--slate)] text-sm">
+                          <ClockIcon className="w-4 h-4 mr-1" />
+                          {new Date(application.created_at).toLocaleDateString()}
+                        </div>
+                        {application.projects?.creator && (
+                          <div className="flex items-center">
+                            <ChatButton
+                              currentUser={currentUser}
+                              otherUser={application.projects.creator}
+                              projectId={application.project_id}
+                              applicationId={application.id}
+                            />
+                            {application.status === 'accepted' && (
+                              <span className="ml-2 text-sm text-[var(--accent)]">
+                                Discuss project details
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </motion.div>
                 ))
@@ -312,27 +358,9 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                         <h3 className="text-lg font-semibold text-[var(--white)]">
                           {application.projects?.title}
                         </h3>
-                        <div className="flex items-center gap-3 mt-2">
-                          {application.profiles?.avatar_url ? (
-                            <img
-                              src={application.profiles.avatar_url}
-                              alt={application.profiles.full_name}
-                              className="w-8 h-8 rounded-full"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
-                              <UserCircleIcon className="w-5 h-5 text-[var(--accent)]" />
-                            </div>
-                          )}
-                          <div>
-                            <p className="font-medium text-[var(--white)]">
-                              {application.profiles?.full_name}
-                            </p>
-                            <p className="text-sm text-[var(--slate)]">
-                              Applied {new Date(application.created_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
+                        <p className="text-[var(--slate)] mt-1">
+                          Application from {application.profiles?.full_name}
+                        </p>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                         application.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
@@ -343,23 +371,7 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                       </span>
                     </div>
 
-                    {application.profiles?.skills && application.profiles.skills.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-medium text-[var(--light-slate)] mb-2">Skills</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {application.profiles.skills.map((skill, index) => (
-                            <span
-                              key={index}
-                              className="px-2 py-1 text-xs bg-[var(--accent)]/10 text-[var(--accent)] rounded-full"
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex flex-wrap gap-4 text-sm">
+                    <div className="flex flex-wrap gap-4 text-sm text-[var(--slate)]">
                       {application.linkedin_url && (
                         <a
                           href={application.linkedin_url}
@@ -367,7 +379,7 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                           rel="noopener noreferrer"
                           className="text-[var(--accent)] hover:underline"
                         >
-                          LinkedIn Profile
+                          LinkedIn
                         </a>
                       )}
                       {application.github_url && (
@@ -377,7 +389,7 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                           rel="noopener noreferrer"
                           className="text-[var(--accent)] hover:underline"
                         >
-                          GitHub Profile
+                          GitHub
                         </a>
                       )}
                       {application.portfolio_url && (
@@ -392,28 +404,53 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                       )}
                     </div>
 
-                    {application.status === 'pending' && (
-                      <div className="flex gap-4 mt-4">
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => handleUpdateStatus(application.id, 'accepted')}
-                          className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-green-500/20 text-green-500 rounded-lg hover:bg-green-500/30 transition-colors"
-                        >
-                          <CheckIcon className="w-5 h-5" />
-                          <span>Accept</span>
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => handleUpdateStatus(application.id, 'rejected')}
-                          className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition-colors"
-                        >
-                          <XMarkIcon className="w-5 h-5" />
-                          <span>Reject</span>
-                        </motion.button>
+                    <div className="flex items-center justify-between pt-4 border-t border-[var(--navy-dark)]">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
+                          <UserCircleIcon className="w-5 h-5 text-[var(--accent)]" />
+                        </div>
+                        <div>
+                          <p className="text-[var(--white)] font-medium">
+                            {application.profiles?.full_name}
+                          </p>
+                          <p className="text-[var(--slate)] text-sm">Applicant</p>
+                        </div>
                       </div>
-                    )}
+
+                      <div className="flex items-center space-x-4">
+                        {application.status === 'pending' && (
+                          <>
+                            <button
+                              onClick={() => handleUpdateStatus(application.id, 'accepted')}
+                              className="p-2 bg-green-500/10 text-green-500 rounded-lg hover:bg-green-500/20 transition-colors"
+                            >
+                              <CheckIcon className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleUpdateStatus(application.id, 'rejected')}
+                              className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors"
+                            >
+                              <XMarkIcon className="w-5 h-5" />
+                            </button>
+                          </>
+                        )}
+                        {application.profiles && (
+                          <div className="flex items-center">
+                            <ChatButton
+                              currentUser={currentUser}
+                              otherUser={application.profiles}
+                              projectId={application.project_id}
+                              applicationId={application.id}
+                            />
+                            {application.status === 'accepted' && (
+                              <span className="ml-2 text-sm text-[var(--accent)]">
+                                Discuss project details
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </motion.div>
                 ))
               )}

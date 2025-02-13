@@ -40,12 +40,14 @@ CREATE POLICY "Users can view their chat rooms"
     )
   );
 
-CREATE POLICY "Project creators can create chat rooms"
+CREATE POLICY "Users can create chat rooms"
   ON chat_rooms FOR INSERT
   TO authenticated
   WITH CHECK (
     auth.uid() IN (
       SELECT creator_id FROM projects WHERE id = project_id
+      UNION
+      SELECT applicant_id FROM project_applications WHERE id = application_id
     )
   );
 
