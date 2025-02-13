@@ -79,7 +79,7 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
       setLoading(true);
       console.log('Fetching chat rooms for user:', currentUser.user_id);
       
-      // Get all chat rooms where the user is involved (either as project creator or applicant)
+      // First get all chat rooms
       const { data: rooms, error } = await supabase
         .from('chat_rooms')
         .select(`
@@ -108,16 +108,21 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
             sender_id
           )
         `)
-        .or(`project.creator_id.eq.${currentUser.user_id},application.applicant_id.eq.${currentUser.user_id}`)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
 
-      // Process the rooms to include the latest message
-      const processedRooms = rooms?.map(room => ({
-        ...room,
-        last_message: room.chat_messages?.[room.chat_messages.length - 1]
-      })).filter(room => room.project && room.application); // Filter out any rooms with missing relationships
+      // Filter rooms where user is either creator or applicant
+      const processedRooms = rooms
+        ?.filter(room => 
+          room.project?.creator_id === currentUser.user_id || 
+          room.application?.applicant_id === currentUser.user_id
+        )
+        .map(room => ({
+          ...room,
+          last_message: room.chat_messages?.[room.chat_messages.length - 1]
+        }))
+        .filter(room => room.project && room.application);
 
       console.log('Fetched and processed chat rooms:', processedRooms);
       setChatRooms(processedRooms || []);
