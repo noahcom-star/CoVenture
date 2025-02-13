@@ -60,8 +60,13 @@ export default function ChatModal({
 
     fetchMessages();
 
-    // Set up real-time subscription for messages with unique channel name
-    const channel = supabase.channel(`room_${chatRoomId}`);
+    // Set up real-time subscription for messages
+    const channel = supabase.channel('chat_messages', {
+      config: {
+        broadcast: { self: true },
+        presence: { key: currentUser.user_id },
+      },
+    });
     
     channel
       .on(
@@ -79,15 +84,23 @@ export default function ChatModal({
           scrollToBottom();
         }
       )
-      .subscribe((status) => {
-        console.log(`Subscription status for room ${chatRoomId}:`, status);
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log(`Successfully subscribed to chat messages for room ${chatRoomId}`);
+        } else if (status === 'CLOSED') {
+          console.log('Subscription closed, attempting to reconnect...');
+          await channel.subscribe();
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Channel error, will retry subscription');
+          await channel.subscribe();
+        }
       });
 
     return () => {
-      console.log(`Unsubscribing from room ${chatRoomId}`);
+      console.log(`Cleaning up subscription for room ${chatRoomId}`);
       channel.unsubscribe();
     };
-  }, [chatRoomId]);
+  }, [chatRoomId, currentUser.user_id]);
 
   useEffect(() => {
     scrollToBottom();

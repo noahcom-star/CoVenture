@@ -48,5 +48,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     params: {
       eventsPerSecond: 10
     }
+  },
+  db: {
+    schema: 'public'
   }
-}); 
+});
+
+// Enable real-time subscriptions for specific tables
+supabase.realtime.setAuth(supabaseAnonKey);
+
+// Connect to the realtime server
+supabase.realtime.connect(); 

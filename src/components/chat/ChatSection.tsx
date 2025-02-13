@@ -122,7 +122,12 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
     fetchChatRooms();
 
     // Subscribe to both chat rooms and messages
-    const channel = supabase.channel('chat_updates');
+    const channel = supabase.channel('chat_updates', {
+      config: {
+        broadcast: { self: true },
+        presence: { key: currentUser.user_id },
+      },
+    });
     
     channel
       .on(
@@ -132,8 +137,8 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
           schema: 'public',
           table: 'chat_rooms'
         },
-        (payload) => {
-          console.log('Chat room change received:', payload);
+        () => {
+          console.log('Chat room change detected, refreshing rooms...');
           fetchChatRooms();
         }
       )
@@ -144,16 +149,25 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
           schema: 'public',
           table: 'chat_messages'
         },
-        (payload) => {
-          console.log('Chat message change received:', payload);
+        () => {
+          console.log('Chat message change detected, refreshing rooms...');
           fetchChatRooms();
         }
       )
-      .subscribe((status) => {
-        console.log('Chat updates subscription status:', status);
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to chat updates');
+        } else if (status === 'CLOSED') {
+          console.log('Subscription closed, attempting to reconnect...');
+          await channel.subscribe();
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Channel error, will retry subscription');
+          await channel.subscribe();
+        }
       });
 
     return () => {
+      console.log('Cleaning up chat updates subscription');
       channel.unsubscribe();
     };
   }, [currentUser]);
