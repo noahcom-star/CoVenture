@@ -195,12 +195,12 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
   return (
     <div className="space-y-6">
       <Tab.Group>
-        <Tab.List className="flex space-x-4 bg-[var(--navy-light)]/30 p-1 rounded-lg">
+        <Tab.List className="flex space-x-4 bg-[var(--navy-light)]/50 backdrop-blur-lg p-2 rounded-xl mb-6">
           <Tab
             className={({ selected }) =>
               classNames(
-                'w-full py-2 px-4 text-sm font-medium rounded-md',
-                'focus:outline-none',
+                'w-full py-3 px-4 text-sm font-medium rounded-lg transition-all',
+                'focus:outline-none focus:ring-2 ring-offset-2 ring-offset-[var(--navy-dark)] ring-[var(--accent)]/50',
                 selected
                   ? 'bg-[var(--accent)] text-[var(--navy-dark)]'
                   : 'text-[var(--slate)] hover:text-[var(--white)] hover:bg-[var(--accent)]/10'
@@ -212,8 +212,8 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
           <Tab
             className={({ selected }) =>
               classNames(
-                'w-full py-2 px-4 text-sm font-medium rounded-md',
-                'focus:outline-none',
+                'w-full py-3 px-4 text-sm font-medium rounded-lg transition-all',
+                'focus:outline-none focus:ring-2 ring-offset-2 ring-offset-[var(--navy-dark)] ring-[var(--accent)]/50',
                 selected
                   ? 'bg-[var(--accent)] text-[var(--navy-dark)]'
                   : 'text-[var(--slate)] hover:text-[var(--white)] hover:bg-[var(--accent)]/10'
@@ -227,103 +227,44 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
         <Tab.Panels>
           <Tab.Panel>
             <div className="space-y-4">
-              {sentApplications.length === 0 ? (
-                <div className="text-center py-8 text-[var(--slate)]">
-                  <p>You haven't sent any applications yet.</p>
+              {loading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--accent)]" />
                 </div>
-              ) : (
+              ) : sentApplications.length > 0 ? (
                 sentApplications.map((application) => (
                   <motion.div
                     key={application.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-[var(--navy-light)]/30 rounded-lg p-6 space-y-4"
+                    className="bg-[var(--navy-light)]/50 backdrop-blur-lg rounded-xl p-6 hover:bg-[var(--navy-light)] transition-colors"
                   >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-lg font-semibold text-[var(--white)]">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-2">
+                        <h3 className="text-xl font-semibold text-[var(--white)]">
                           {application.projects?.title}
                         </h3>
-                        <p className="text-[var(--slate)] mt-1">
-                          {application.projects?.description}
-                        </p>
-                      </div>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        application.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
-                        application.status === 'accepted' ? 'bg-green-500/10 text-green-500' :
-                        'bg-red-500/10 text-red-500'
-                      }`}>
-                        {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-4 text-sm text-[var(--slate)]">
-                      <div className="flex items-center gap-2">
-                        <ClockIcon className="w-4 h-4" />
-                        <span>Applied {new Date(application.created_at).toLocaleDateString()}</span>
-                      </div>
-                      {application.projects?.creator && (
-                        <div className="flex items-center gap-2">
-                          {application.projects.creator.avatar_url ? (
-                            <img
-                              src={application.projects.creator.avatar_url}
-                              alt={application.projects.creator.full_name}
-                              className="w-4 h-4 rounded-full"
-                            />
-                          ) : (
+                        <div className="flex items-center space-x-4 text-sm text-[var(--slate)]">
+                          <div className="flex items-center space-x-2">
                             <UserCircleIcon className="w-4 h-4" />
-                          )}
-                          <span>Created by {application.projects.creator.full_name}</span>
-                        </div>
-                      )}
-                      {application.linkedin_url && (
-                        <a
-                          href={application.linkedin_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[var(--accent)] hover:underline"
-                        >
-                          LinkedIn
-                        </a>
-                      )}
-                      {application.github_url && (
-                        <a
-                          href={application.github_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[var(--accent)] hover:underline"
-                        >
-                          GitHub
-                        </a>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between pt-4 border-t border-[var(--navy-dark)]">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
-                          <UserCircleIcon className="w-5 h-5 text-[var(--accent)]" />
-                        </div>
-                        <div>
-                          <p className="text-[var(--white)] font-medium">
-                            {application.projects?.creator?.full_name}
-                          </p>
-                          <p className="text-[var(--slate)] text-sm">Project Creator</p>
+                            <span>Created by {application.projects?.creator?.full_name}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <ClockIcon className="w-4 h-4" />
+                            <span>Applied {new Date(application.created_at).toLocaleDateString()}</span>
+                          </div>
                         </div>
                       </div>
-                      
                       <div className="flex items-center space-x-4">
-                        <div className="flex items-center text-[var(--slate)] text-sm">
-                          <ClockIcon className="w-4 h-4 mr-1" />
-                          {new Date(application.created_at).toLocaleDateString()}
-                        </div>
-                        <div className="flex items-center space-x-4">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            application.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
-                            application.status === 'accepted' ? 'bg-green-500/10 text-green-500' :
-                            'bg-red-500/10 text-red-500'
-                          }`}>
-                            {application.status}
-                          </span>
+                        <span className={classNames(
+                          'px-3 py-1 rounded-full text-sm font-medium',
+                          application.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
+                          application.status === 'accepted' ? 'bg-green-500/10 text-green-500' :
+                          'bg-red-500/10 text-red-500'
+                        )}>
+                          {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                        </span>
+                        {application.status === 'accepted' && (
                           <motion.div
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
@@ -335,127 +276,132 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                               applicationId={application.id}
                             />
                           </motion.div>
-                        </div>
+                        )}
                       </div>
                     </div>
                   </motion.div>
                 ))
+              ) : (
+                <div className="text-center py-12 bg-[var(--navy-light)]/50 backdrop-blur-lg rounded-xl">
+                  <p className="text-[var(--slate)]">You haven't sent any applications yet.</p>
+                </div>
               )}
             </div>
           </Tab.Panel>
 
           <Tab.Panel>
             <div className="space-y-4">
-              {receivedApplications.length === 0 ? (
-                <div className="text-center py-8 text-[var(--slate)]">
-                  <p>You haven't received any applications yet.</p>
+              {loading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--accent)]" />
                 </div>
-              ) : (
+              ) : receivedApplications.length > 0 ? (
                 receivedApplications.map((application) => (
                   <motion.div
                     key={application.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-[var(--navy-light)]/30 rounded-lg p-6 space-y-4"
+                    className="bg-[var(--navy-light)]/50 backdrop-blur-lg rounded-xl p-6 hover:bg-[var(--navy-light)] transition-colors"
                   >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-lg font-semibold text-[var(--white)]">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-2">
+                        <h3 className="text-xl font-semibold text-[var(--white)]">
                           {application.projects?.title}
                         </h3>
-                        <p className="text-[var(--slate)] mt-1">
-                          Application from {application.profiles?.full_name}
-                        </p>
-                      </div>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        application.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
-                        application.status === 'accepted' ? 'bg-green-500/10 text-green-500' :
-                        'bg-red-500/10 text-red-500'
-                      }`}>
-                        {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-4 text-sm text-[var(--slate)]">
-                      {application.linkedin_url && (
-                        <a
-                          href={application.linkedin_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[var(--accent)] hover:underline"
-                        >
-                          LinkedIn
-                        </a>
-                      )}
-                      {application.github_url && (
-                        <a
-                          href={application.github_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[var(--accent)] hover:underline"
-                        >
-                          GitHub
-                        </a>
-                      )}
-                      {application.portfolio_url && (
-                        <a
-                          href={application.portfolio_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[var(--accent)] hover:underline"
-                        >
-                          Portfolio
-                        </a>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between pt-4 border-t border-[var(--navy-dark)]">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
-                          <UserCircleIcon className="w-5 h-5 text-[var(--accent)]" />
-                        </div>
-                        <div>
-                          <p className="text-[var(--white)] font-medium">
-                            {application.profiles?.full_name}
-                          </p>
-                          <p className="text-[var(--slate)] text-sm">Applicant</p>
+                        <div className="flex items-center space-x-4 text-sm text-[var(--slate)]">
+                          <div className="flex items-center space-x-2">
+                            <UserCircleIcon className="w-4 h-4" />
+                            <span>From {application.profiles?.full_name}</span>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <ClockIcon className="w-4 h-4" />
+                            <span>Received {new Date(application.created_at).toLocaleDateString()}</span>
+                          </div>
                         </div>
                       </div>
 
                       <div className="flex items-center space-x-4">
                         {application.status === 'pending' ? (
-                          <>
-                            <button
+                          <div className="flex items-center space-x-2">
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
                               onClick={() => handleUpdateStatus(application.id, 'accepted')}
                               className="p-2 bg-green-500/10 text-green-500 rounded-lg hover:bg-green-500/20 transition-colors"
                             >
                               <CheckIcon className="w-5 h-5" />
-                            </button>
-                            <button
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
                               onClick={() => handleUpdateStatus(application.id, 'rejected')}
                               className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors"
                             >
                               <XMarkIcon className="w-5 h-5" />
-                            </button>
-                          </>
+                            </motion.button>
+                          </div>
                         ) : (
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            application.status === 'accepted' ? 'bg-green-500/10 text-green-500' :
-                            'bg-red-500/10 text-red-500'
-                          }`}>
-                            {application.status === 'accepted' ? 'Accepted' : 'Rejected'}
+                          <span className={classNames(
+                            'px-3 py-1 rounded-full text-sm font-medium',
+                            application.status === 'accepted' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                          )}>
+                            {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
                           </span>
                         )}
-                        <ChatButton
-                          currentUser={currentUser}
-                          otherUser={application.profiles as UserProfile}
-                          projectId={application.project_id}
-                          applicationId={application.id}
-                        />
+
+                        {application.status === 'accepted' && (
+                          <motion.div
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <ChatButton
+                              currentUser={currentUser}
+                              otherUser={application.profiles as UserProfile}
+                              projectId={application.project_id}
+                              applicationId={application.id}
+                            />
+                          </motion.div>
+                        )}
                       </div>
                     </div>
+
+                    {application.status === 'pending' && (
+                      <div className="mt-4 p-4 bg-[var(--navy-dark)] rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1">
+                            <h4 className="text-sm font-medium text-[var(--white)]">Application Details</h4>
+                            {application.linkedin_url && (
+                              <a href={application.linkedin_url} target="_blank" rel="noopener noreferrer" 
+                                 className="block text-sm text-[var(--accent)] hover:underline">
+                                LinkedIn Profile
+                              </a>
+                            )}
+                            {application.github_url && (
+                              <a href={application.github_url} target="_blank" rel="noopener noreferrer"
+                                 className="block text-sm text-[var(--accent)] hover:underline">
+                                GitHub Profile
+                              </a>
+                            )}
+                            {application.portfolio_url && (
+                              <a href={application.portfolio_url} target="_blank" rel="noopener noreferrer"
+                                 className="block text-sm text-[var(--accent)] hover:underline">
+                                Portfolio
+                              </a>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-[var(--slate)]">Review this application</p>
+                            <p className="text-xs text-[var(--slate)]">Use the buttons above to accept or reject</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </motion.div>
                 ))
+              ) : (
+                <div className="text-center py-12 bg-[var(--navy-light)]/50 backdrop-blur-lg rounded-xl">
+                  <p className="text-[var(--slate)]">No applications received yet.</p>
+                </div>
               )}
             </div>
           </Tab.Panel>

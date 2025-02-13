@@ -83,13 +83,14 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
   const fetchChatRooms = async () => {
     try {
       setLoading(true);
+      console.log('Fetching chat rooms for user:', currentUser.user_id);
+      
       const { data: rooms, error } = await supabase
         .from('chat_rooms')
         .select(`
           *,
           project:projects!inner (
             title,
-            creator_id,
             creator:profiles!projects_creator_id_fkey (
               user_id,
               full_name,
@@ -97,7 +98,6 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
             )
           ),
           application:project_applications!inner (
-            applicant_id,
             applicant:profiles!project_applications_applicant_id_fkey (
               user_id,
               full_name,
@@ -110,7 +110,7 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
             sender_id
           )
         `)
-        .or(`project.creator_id.eq.${currentUser.user_id},application.applicant_id.eq.${currentUser.user_id}`)
+        .or(`project->creator_id.eq.${currentUser.user_id},application->applicant_id.eq.${currentUser.user_id}`)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
