@@ -58,19 +58,19 @@ export default function ChatModal({
 
     fetchMessages();
 
-    // Subscribe to new messages
+    // Subscribe to ALL changes in the chat_messages table
     const subscription = supabase
-      .channel(`room:${chatRoomId}`)
+      .channel('chat_messages')
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'chat_messages',
-          filter: `room_id=eq.${chatRoomId}`,
+          filter: `room_id=eq.${chatRoomId}`
         },
-        (payload) => {
-          setMessages((current) => [...current, payload.new as ChatMessage]);
+        () => {
+          fetchMessages();
         }
       )
       .subscribe();
