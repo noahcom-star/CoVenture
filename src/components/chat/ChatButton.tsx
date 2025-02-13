@@ -60,12 +60,15 @@ export default function ChatButton({ currentUser, otherUser, projectId, applicat
 
   return (
     <>
-      <button
+      <motion.button
         onClick={handleOpenChat}
-        className="p-2 bg-[var(--accent)]/10 text-[var(--accent)] rounded-lg hover:bg-[var(--accent)]/20 transition-colors"
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        className="flex items-center space-x-2 px-3 py-2 bg-[var(--accent)]/10 text-[var(--accent)] rounded-lg hover:bg-[var(--accent)]/20 transition-all"
       >
         <ChatBubbleLeftRightIcon className="w-5 h-5" />
-      </button>
+        <span className="text-sm font-medium">Chat</span>
+      </motion.button>
 
       {isModalOpen && chatRoomId && (
         <ChatModal

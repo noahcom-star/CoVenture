@@ -40,7 +40,7 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
     
     // Subscribe to both chat rooms and messages updates
     const chatRoomsSubscription = supabase
-      .channel('chat_updates')
+      .channel(`chat_rooms:${currentUser.user_id}`)
       .on(
         'postgres_changes',
         {
@@ -65,7 +65,15 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
           fetchChatRooms();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Chat rooms subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to chat room updates');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Failed to subscribe to chat room updates');
+          toast.error('Failed to connect to chat. Please refresh the page.');
+        }
+      });
 
     return () => {
       chatRoomsSubscription.unsubscribe();

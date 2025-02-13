@@ -316,21 +316,26 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                           <ClockIcon className="w-4 h-4 mr-1" />
                           {new Date(application.created_at).toLocaleDateString()}
                         </div>
-                        {application.projects?.creator && (
-                          <div className="flex items-center">
+                        <div className="flex items-center space-x-4">
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            application.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
+                            application.status === 'accepted' ? 'bg-green-500/10 text-green-500' :
+                            'bg-red-500/10 text-red-500'
+                          }`}>
+                            {application.status}
+                          </span>
+                          <motion.div
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
                             <ChatButton
                               currentUser={currentUser}
-                              otherUser={application.projects.creator}
+                              otherUser={application.projects?.creator as UserProfile}
                               projectId={application.project_id}
                               applicationId={application.id}
                             />
-                            {application.status === 'accepted' && (
-                              <span className="ml-2 text-sm text-[var(--accent)]">
-                                Discuss project details
-                              </span>
-                            )}
-                          </div>
-                        )}
+                          </motion.div>
+                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -418,7 +423,7 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                       </div>
 
                       <div className="flex items-center space-x-4">
-                        {application.status === 'pending' && (
+                        {application.status === 'pending' ? (
                           <>
                             <button
                               onClick={() => handleUpdateStatus(application.id, 'accepted')}
@@ -433,22 +438,20 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                               <XMarkIcon className="w-5 h-5" />
                             </button>
                           </>
+                        ) : (
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            application.status === 'accepted' ? 'bg-green-500/10 text-green-500' :
+                            'bg-red-500/10 text-red-500'
+                          }`}>
+                            {application.status === 'accepted' ? 'Accepted' : 'Rejected'}
+                          </span>
                         )}
-                        {application.profiles && (
-                          <div className="flex items-center">
-                            <ChatButton
-                              currentUser={currentUser}
-                              otherUser={application.profiles}
-                              projectId={application.project_id}
-                              applicationId={application.id}
-                            />
-                            {application.status === 'accepted' && (
-                              <span className="ml-2 text-sm text-[var(--accent)]">
-                                Discuss project details
-                              </span>
-                            )}
-                          </div>
-                        )}
+                        <ChatButton
+                          currentUser={currentUser}
+                          otherUser={application.profiles as UserProfile}
+                          projectId={application.project_id}
+                          applicationId={application.id}
+                        />
                       </div>
                     </div>
                   </motion.div>
