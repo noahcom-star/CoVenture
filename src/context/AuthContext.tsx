@@ -86,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Get the site URL from environment or window location
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 
-                     (typeof window !== 'undefined' ? window.location.origin : 'https://coventure-ek4gx20uf-noahcom-stars-projects.vercel.app');
+                     (typeof window !== 'undefined' ? window.location.origin : 'https://coventure.app');
 
       const { error } = await supabase.auth.signUp({
         email,
