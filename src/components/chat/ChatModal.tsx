@@ -60,42 +60,49 @@ export default function ChatModal({
     };
 
     const setupRealtimeSubscription = async () => {
-      // Clean up existing subscription if any
-      if (channelRef.current) {
-        await channelRef.current.unsubscribe();
-      }
-
-      // Create new channel for this room
-      const channel = supabase.channel(`room:${chatRoomId}`, {
-        config: {
-          broadcast: { self: true }
+      try {
+        // Clean up existing subscription if any
+        if (channelRef.current) {
+          await channelRef.current.unsubscribe();
         }
-      });
 
-      channel.on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'chat_messages',
-          filter: `room_id=eq.${chatRoomId}`
-        },
-        (payload) => {
-          console.log('Message change detected:', payload);
-          if (payload.eventType === 'INSERT') {
-            const newMessage = payload.new as ChatMessage;
-            setMessages(prev => [...prev, newMessage]);
-            scrollToBottom();
+        // Create new channel for this room
+        const channel = supabase.channel(`room_${chatRoomId}`, {
+          config: {
+            broadcast: { self: true },
+            presence: { key: currentUser.user_id }
           }
-        }
-      );
+        });
 
-      // Subscribe to the channel
-      const status = await channel.subscribe();
-      console.log(`Room ${chatRoomId} subscription status:`, status);
-      
-      // Store the channel reference
-      channelRef.current = channel;
+        // Subscribe to all message changes for this room
+        channel
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'chat_messages',
+              filter: `room_id=eq.${chatRoomId}`
+            },
+            (payload) => {
+              console.log('New message received:', payload);
+              const newMessage = payload.new as ChatMessage;
+              setMessages(prev => [...prev, newMessage]);
+              scrollToBottom();
+            }
+          );
+
+        // Subscribe and log the status
+        const status = await channel.subscribe(async (status) => {
+          console.log(`Subscription status for room ${chatRoomId}:`, status);
+        });
+
+        console.log('Channel subscription successful:', status);
+        channelRef.current = channel;
+      } catch (error) {
+        console.error('Error in setupRealtimeSubscription:', error);
+        toast.error('Failed to connect to chat room');
+      }
     };
 
     fetchMessages();

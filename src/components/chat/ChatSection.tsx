@@ -131,50 +131,58 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
     if (!currentUser) return;
     
     const setupRealtimeSubscription = async () => {
-      // Clean up existing subscription if any
-      if (channelRef.current) {
-        await channelRef.current.unsubscribe();
-      }
-
-      // Create new channel for chat updates
-      const channel = supabase.channel('chat_updates', {
-        config: {
-          broadcast: { self: true }
+      try {
+        // Clean up existing subscription if any
+        if (channelRef.current) {
+          await channelRef.current.unsubscribe();
         }
-      });
 
-      channel
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'chat_rooms'
-          },
-          () => {
-            console.log('Chat room updated, refreshing...');
-            fetchChatRooms();
+        // Create new channel for chat updates
+        const channel = supabase.channel('chat_updates', {
+          config: {
+            broadcast: { self: true },
+            presence: { key: currentUser.user_id }
           }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'chat_messages'
-          },
-          () => {
-            console.log('New message received, refreshing rooms...');
-            fetchChatRooms();
-          }
-        );
+        });
 
-      // Subscribe to the channel
-      const status = await channel.subscribe();
-      console.log('Chat updates subscription status:', status);
-      
-      // Store the channel reference
-      channelRef.current = channel;
+        // Subscribe to chat room changes
+        channel
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'chat_messages'
+            },
+            (payload) => {
+              console.log('New message received in any room:', payload);
+              fetchChatRooms();
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'chat_rooms'
+            },
+            (payload) => {
+              console.log('Chat room updated:', payload);
+              fetchChatRooms();
+            }
+          );
+
+        // Subscribe and log the status
+        const status = await channel.subscribe(async (status) => {
+          console.log('Chat updates subscription status:', status);
+        });
+
+        console.log('Chat updates subscription successful:', status);
+        channelRef.current = channel;
+      } catch (error) {
+        console.error('Error in setupRealtimeSubscription:', error);
+        toast.error('Failed to connect to chat updates');
+      }
     };
 
     fetchChatRooms();
