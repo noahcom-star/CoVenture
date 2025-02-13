@@ -59,10 +59,10 @@ export default function ChatModal({
 
     fetchMessages();
 
-    // Set up real-time subscription for messages
-    const channel = supabase.channel(`room_${chatRoomId}`);
+    // Set up real-time subscription
+    const channelA = supabase.channel('chat_messages');
     
-    channel
+    channelA
       .on(
         'postgres_changes',
         {
@@ -73,16 +73,17 @@ export default function ChatModal({
         },
         (payload) => {
           console.log('New message received:', payload);
-          const newMessage = payload.new as ChatMessage;
-          setMessages(prev => [...prev, newMessage]);
+          // Add the new message to the messages array
+          setMessages(prev => [...prev, payload.new as ChatMessage]);
         }
       )
       .subscribe((status) => {
-        console.log('Subscription status:', status);
+        console.log(`Subscription status for ${chatRoomId}:`, status);
       });
 
     return () => {
-      channel.unsubscribe();
+      console.log('Cleaning up subscription...');
+      channelA.unsubscribe();
     };
   }, [chatRoomId]);
 
@@ -95,13 +96,25 @@ export default function ChatModal({
     if (!newMessage.trim()) return;
 
     try {
-      const { error } = await supabase.from('chat_messages').insert({
+      const messageToSend = {
         room_id: chatRoomId,
         sender_id: currentUser.user_id,
         content: newMessage.trim(),
-      });
+      };
+
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .insert(messageToSend)
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Optimistically add the message to the UI
+      if (data) {
+        setMessages(prev => [...prev, data]);
+      }
+      
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
