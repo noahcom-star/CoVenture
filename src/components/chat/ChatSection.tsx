@@ -48,7 +48,8 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
           schema: 'public',
           table: 'chat_rooms'
         },
-        () => {
+        (payload) => {
+          console.log('Chat room update:', payload);
           fetchChatRooms();
         }
       )
@@ -59,7 +60,8 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
           schema: 'public',
           table: 'chat_messages'
         },
-        () => {
+        (payload) => {
+          console.log('Chat message update:', payload);
           fetchChatRooms();
         }
       )
@@ -68,7 +70,7 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
     return () => {
       chatRoomsSubscription.unsubscribe();
     };
-  }, []);
+  }, [currentUser.user_id]);
 
   const fetchChatRooms = async () => {
     try {
@@ -77,15 +79,17 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
         .from('chat_rooms')
         .select(`
           *,
-          project:projects (
+          project:projects!inner (
             title,
+            creator_id,
             creator:profiles!projects_creator_id_fkey (
               user_id,
               full_name,
               avatar_url
             )
           ),
-          application:project_applications (
+          application:project_applications!inner (
+            applicant_id,
             applicant:profiles!project_applications_applicant_id_fkey (
               user_id,
               full_name,
@@ -98,11 +102,12 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
             sender_id
           )
         `)
-        .order('updated_at', { ascending: false })
-        .limit(1, { foreignTable: 'last_message' });
+        .or(`project.creator_id.eq.${currentUser.user_id},application.applicant_id.eq.${currentUser.user_id}`)
+        .order('updated_at', { ascending: false });
 
       if (error) throw error;
 
+      console.log('Fetched chat rooms:', rooms);
       setChatRooms(rooms || []);
     } catch (error) {
       console.error('Error fetching chat rooms:', error);

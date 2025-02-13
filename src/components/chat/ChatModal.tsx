@@ -47,6 +47,7 @@ export default function ChatModal({
           .order('created_at', { ascending: true });
 
         if (error) throw error;
+        console.log('Fetched messages:', data);
         setMessages(data || []);
       } catch (error) {
         console.error('Error fetching messages:', error);
@@ -60,7 +61,7 @@ export default function ChatModal({
 
     // Subscribe to ALL changes in the chat_messages table
     const subscription = supabase
-      .channel('chat_messages')
+      .channel(`chat_room:${chatRoomId}`)
       .on(
         'postgres_changes',
         {
@@ -69,11 +70,14 @@ export default function ChatModal({
           table: 'chat_messages',
           filter: `room_id=eq.${chatRoomId}`
         },
-        () => {
+        (payload) => {
+          console.log('Chat message update:', payload);
           fetchMessages();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
 
     return () => {
       subscription.unsubscribe();
@@ -89,13 +93,14 @@ export default function ChatModal({
     if (!newMessage.trim()) return;
 
     try {
-      const { error } = await supabase.from('chat_messages').insert({
+      const { data, error } = await supabase.from('chat_messages').insert({
         room_id: chatRoomId,
         sender_id: currentUser.user_id,
         content: newMessage.trim(),
-      });
+      }).select();
 
       if (error) throw error;
+      console.log('Sent message:', data);
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
