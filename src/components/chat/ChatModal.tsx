@@ -175,14 +175,27 @@ export default function ChatModal({
                         : 'justify-start'
                     }`}
                   >
-                    <div
-                      className={`max-w-[70%] p-3 rounded-lg ${
+                    <div className="flex flex-col">
+                      <div
+                        className={`max-w-[70%] p-3 rounded-lg ${
+                          message.sender_id === currentUser.user_id
+                            ? 'bg-[var(--accent)] text-[var(--navy-dark)]'
+                            : 'bg-[var(--navy-dark)] text-[var(--white)]'
+                        }`}
+                      >
+                        {message.content}
+                      </div>
+                      <span className={`text-xs text-[var(--slate)] mt-1 ${
                         message.sender_id === currentUser.user_id
-                          ? 'bg-[var(--accent)] text-[var(--navy-dark)]'
-                          : 'bg-[var(--navy-dark)] text-[var(--white)]'
-                      }`}
-                    >
-                      {message.content}
+                          ? 'text-right'
+                          : 'text-left'
+                      }`}>
+                        {new Date(message.created_at).toLocaleTimeString([], { 
+                          hour: '2-digit', 
+                          minute: '2-digit',
+                          hour12: true 
+                        })}
+                      </span>
                     </div>
                   </div>
                 ))
