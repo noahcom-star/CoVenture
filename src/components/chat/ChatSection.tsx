@@ -48,12 +48,15 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
       setLoading(true);
       console.log('Fetching chat rooms for user:', currentUser.user_id);
       
-      // Get all chat rooms where the user is involved
+      // Get all chat rooms where the user is involved (either as creator or applicant)
       const { data: rooms, error } = await supabase
         .from('chat_rooms')
         .select(`
-          *,
-          project:projects (
+          id,
+          created_at,
+          updated_at,
+          project:projects!inner (
+            id,
             title,
             creator_id,
             creator:profiles!projects_creator_id_fkey (
@@ -62,7 +65,8 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
               avatar_url
             )
           ),
-          application:project_applications (
+          application:project_applications!inner (
+            id,
             applicant_id,
             applicant:profiles!project_applications_applicant_id_fkey (
               user_id,
@@ -74,40 +78,28 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
             id,
             content,
             created_at,
-            sender_id,
-            room_id
+            sender_id
           )
         `)
+        .or(`project.creator_id.eq.${currentUser.user_id},application.applicant_id.eq.${currentUser.user_id}`)
         .order('updated_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching chat rooms:', error);
+        throw error;
+      }
 
-      console.log('Raw chat rooms:', rooms);
-
-      // Filter and process the rooms
-      const processedRooms = rooms
-        ?.filter(room => {
-          // Make sure we have all required data
-          if (!room.project?.creator_id || !room.application?.applicant_id) {
-            return false;
-          }
-          // Check if user is either creator or applicant
-          return room.project.creator_id === currentUser.user_id || 
-                 room.application.applicant_id === currentUser.user_id;
-        })
-        .map(room => {
-          // Sort messages by date and get the latest
-          const sortedMessages = room.chat_messages?.sort((a: ChatMessage, b: ChatMessage) => 
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          );
-          return {
-            ...room,
-            last_message: sortedMessages?.[0]
-          };
-        });
+      // Process and sort messages for each room
+      const processedRooms = (rooms || []).map(room => ({
+        ...room,
+        chat_messages: room.chat_messages?.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        ),
+        last_message: room.chat_messages?.[0]
+      }));
 
       console.log('Processed chat rooms:', processedRooms);
-      setChatRooms(processedRooms || []);
+      setChatRooms(processedRooms);
     } catch (error) {
       console.error('Error fetching chat rooms:', error);
       toast.error('Failed to load chat rooms');
@@ -121,50 +113,48 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
     
     fetchChatRooms();
 
-    // Subscribe to both chat rooms and messages
-    const channel = supabase.channel('chat_updates', {
+    // Set up a single channel for all chat-related updates
+    const channel = supabase.channel(`chat_updates_${currentUser.user_id}`, {
       config: {
-        broadcast: { self: true },
-        presence: { key: currentUser.user_id },
-      },
+        broadcast: { self: true }
+      }
     });
-    
-    channel
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'chat_rooms'
-        },
-        () => {
-          console.log('Chat room change detected, refreshing rooms...');
-          fetchChatRooms();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'chat_messages'
-        },
-        () => {
-          console.log('Chat message change detected, refreshing rooms...');
-          fetchChatRooms();
-        }
-      )
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to chat updates');
-        } else if (status === 'CLOSED') {
-          console.log('Subscription closed, attempting to reconnect...');
-          await channel.subscribe();
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('Channel error, will retry subscription');
-          await channel.subscribe();
-        }
-      });
+
+    // Subscribe to chat_rooms changes
+    channel.on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'chat_rooms'
+      },
+      () => {
+        console.log('Chat room updated, refreshing...');
+        fetchChatRooms();
+      }
+    );
+
+    // Subscribe to chat_messages changes
+    channel.on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'chat_messages'
+      },
+      () => {
+        console.log('New message received, refreshing rooms...');
+        fetchChatRooms();
+      }
+    );
+
+    // Subscribe once and handle connection status
+    channel.subscribe((status) => {
+      console.log('Chat updates subscription status:', status);
+      if (status === 'SUBSCRIBED') {
+        console.log('Successfully subscribed to chat updates');
+      }
+    });
 
     return () => {
       console.log('Cleaning up chat updates subscription');
