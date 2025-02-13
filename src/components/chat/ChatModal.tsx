@@ -108,101 +108,113 @@ export default function ChatModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <motion.div
-        ref={modalRef}
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.2 }}
-        className="relative bg-[var(--navy-light)] rounded-xl shadow-xl w-full max-w-2xl flex flex-col overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Chat Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[var(--navy-dark)]">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
-              <span className="text-lg text-[var(--accent)]">
-                {otherUser.full_name?.[0] || '?'}
-              </span>
-            </div>
-            <div>
-              <h3 className="text-[var(--white)] font-medium">
-                {otherUser.full_name}
-              </h3>
-            </div>
-          </div>
-          <button
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-black/50"
             onClick={onClose}
-            className="p-2 hover:bg-[var(--navy-dark)] rounded-lg transition-colors"
-          >
-            <XMarkIcon className="w-6 h-6 text-[var(--slate)]" />
-          </button>
-        </div>
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[400px] max-h-[600px]">
-          {loading ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--accent)]" />
-            </div>
-          ) : messages.length > 0 ? (
-            messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${
-                  message.sender_id === currentUser.user_id
-                    ? 'justify-end'
-                    : 'justify-start'
-                }`}
-              >
-                <div
-                  className={`max-w-[70%] p-3 rounded-lg ${
-                    message.sender_id === currentUser.user_id
-                      ? 'bg-[var(--accent)] text-[var(--navy-dark)]'
-                      : 'bg-[var(--navy-dark)] text-[var(--white)]'
-                  }`}
+          />
+          
+          {/* Modal */}
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <motion.div
+              ref={modalRef}
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="bg-[var(--navy-light)] rounded-xl shadow-xl w-full max-w-2xl h-[80vh] flex flex-col"
+            >
+              {/* Chat Header */}
+              <div className="flex items-center justify-between p-4 border-b border-[var(--navy-dark)]">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
+                    <span className="text-lg text-[var(--accent)]">
+                      {otherUser.full_name?.[0] || '?'}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-[var(--white)] font-medium">
+                      {otherUser.full_name}
+                    </h3>
+                  </div>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="p-2 hover:bg-[var(--navy-dark)] rounded-lg transition-colors"
                 >
-                  <p className="break-words">{message.content}</p>
-                  <span className="text-xs opacity-75 mt-1 block">
-                    {new Date(message.created_at).toLocaleTimeString()}
-                  </span>
+                  <XMarkIcon className="w-6 h-6 text-[var(--slate)]" />
+                </button>
+              </div>
+
+              {/* Messages Container */}
+              <div className="flex-1 overflow-hidden">
+                <div className="h-full overflow-y-auto p-4 space-y-4">
+                  {loading ? (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--accent)]" />
+                    </div>
+                  ) : messages.length > 0 ? (
+                    messages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`flex ${
+                          message.sender_id === currentUser.user_id
+                            ? 'justify-end'
+                            : 'justify-start'
+                        }`}
+                      >
+                        <div
+                          className={`max-w-[70%] p-3 rounded-lg ${
+                            message.sender_id === currentUser.user_id
+                              ? 'bg-[var(--accent)] text-[var(--navy-dark)]'
+                              : 'bg-[var(--navy-dark)] text-[var(--white)]'
+                          }`}
+                        >
+                          <p className="break-words">{message.content}</p>
+                          <span className="text-xs opacity-75 mt-1 block">
+                            {new Date(message.created_at).toLocaleTimeString()}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-[var(--slate)]">
+                      No messages yet. Start the conversation!
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
                 </div>
               </div>
-            ))
-          ) : (
-            <div className="flex items-center justify-center h-full text-[var(--slate)]">
-              No messages yet. Start the conversation!
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
 
-        {/* Message Input */}
-        <form onSubmit={sendMessage} className="p-4 border-t border-[var(--navy-dark)] bg-[var(--navy-light)]">
-          <div className="flex space-x-2">
-            <input
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
-              className="flex-1 bg-[var(--navy-dark)] text-[var(--white)] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50"
-            />
-            <button
-              type="submit"
-              disabled={!newMessage.trim()}
-              className="px-4 py-2 bg-[var(--accent)] text-[var(--navy-dark)] rounded-lg font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-            >
-              Send
-            </button>
+              {/* Message Input */}
+              <div className="p-4 border-t border-[var(--navy-dark)] bg-[var(--navy-light)]">
+                <form onSubmit={sendMessage} className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type a message..."
+                    className="flex-1 bg-[var(--navy-dark)] text-[var(--white)] rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!newMessage.trim()}
+                    className="px-4 py-2 bg-[var(--accent)] text-[var(--navy-dark)] rounded-lg font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+                  >
+                    Send
+                  </button>
+                </form>
+              </div>
+            </motion.div>
           </div>
-        </form>
-      </motion.div>
-    </div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 } 
