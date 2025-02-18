@@ -33,21 +33,14 @@ export default function ChatModal({
   const maxRetries = 3;
   const currentUser = useCurrentUser();
 
-  // Return loading state if currentUser is not yet available
-  if (!currentUser) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-      </div>
-    );
-  }
-
   useEffect(() => {
     let subscription: any = null;
     let mounted = true;
     let retryTimeout: NodeJS.Timeout;
 
     const setupRealtimeSubscription = async () => {
+      if (!currentUser) return;
+
       try {
         console.log(`Setting up subscription for room ${roomId}...`);
         
@@ -78,24 +71,7 @@ export default function ChatModal({
               });
             }
           })
-          .subscribe((status) => {
-            console.log(`Subscription status for room ${roomId}:`, status);
-            
-            if (status === 'SUBSCRIBED') {
-              console.log('Successfully subscribed to room:', roomId);
-              setRetryCount(0); // Reset retry count on successful subscription
-            } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-              console.error('Subscription failed:', status);
-              if (mounted && retryCount < maxRetries) {
-                const nextRetry = Math.min(1000 * Math.pow(2, retryCount), 10000);
-                console.log(`Retrying in ${nextRetry}ms...`);
-                retryTimeout = setTimeout(() => {
-                  setRetryCount(prev => prev + 1);
-                  setupRealtimeSubscription();
-                }, nextRetry);
-              }
-            }
-          });
+          .subscribe();
       } catch (error) {
         console.error('Error setting up subscription:', error);
         if (mounted && retryCount < maxRetries) {
@@ -111,14 +87,16 @@ export default function ChatModal({
 
     // Initial setup
     setupRealtimeSubscription();
-    fetchMessages();
+    if (currentUser) {
+      fetchMessages();
+    }
 
     return () => {
       mounted = false;
       if (subscription) subscription.unsubscribe();
       if (retryTimeout) clearTimeout(retryTimeout);
     };
-  }, [roomId, retryCount]);
+  }, [roomId, retryCount, currentUser]);
 
   const fetchMessages = async () => {
     try {
@@ -178,6 +156,17 @@ export default function ChatModal({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Return loading state if currentUser is not yet available
+  if (!currentUser) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="bg-[var(--navy-light)] rounded-lg shadow-xl w-full max-w-2xl mx-4 p-8 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent)]" />
+        </div>
+      </div>
+    );
+  }
 
   if (!roomId) return null;
 

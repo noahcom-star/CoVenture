@@ -1,7 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 import { UserProfile } from '@/types/profile';
+import dynamic from 'next/dynamic';
+
+const ChatModal = dynamic(() => import('./ChatModal'), {
+  ssr: false,
+});
 
 interface ChatButtonProps {
   currentUser: UserProfile;
@@ -18,21 +24,25 @@ export default function ChatButton({
   applicationId,
   projectTitle
 }: ChatButtonProps) {
+  const [showModal, setShowModal] = useState(false);
+  const roomId = `${projectId}_${applicationId}`;
+
   return (
-    <button
-      onClick={() => {
-        // Create a chat room ID using project ID and application ID
-        const roomId = `${projectId}_${applicationId}`;
-        
-        // Open the chat modal with the room ID and project title
-        const chatModal = document.createElement('chat-modal');
-        chatModal.setAttribute('room-id', roomId);
-        chatModal.setAttribute('project-title', projectTitle);
-        document.body.appendChild(chatModal);
-      }}
-      className="p-2 bg-[var(--accent)]/10 text-[var(--accent)] rounded-lg hover:bg-[var(--accent)]/20 transition-colors"
-    >
-      <ChatBubbleLeftRightIcon className="w-5 h-5" />
-    </button>
+    <>
+      <button
+        onClick={() => setShowModal(true)}
+        className="p-2 bg-[var(--accent)]/10 text-[var(--accent)] rounded-lg hover:bg-[var(--accent)]/20 transition-colors"
+      >
+        <ChatBubbleLeftRightIcon className="w-5 h-5" />
+      </button>
+
+      {showModal && (
+        <ChatModal
+          roomId={roomId}
+          otherUser={otherUser}
+          projectTitle={projectTitle}
+        />
+      )}
+    </>
   );
 } 
