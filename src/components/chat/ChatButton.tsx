@@ -7,6 +7,13 @@ import dynamic from 'next/dynamic';
 
 const ChatModal = dynamic(() => import('./ChatModal'), {
   ssr: false,
+  loading: () => (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-[var(--navy-light)] rounded-lg shadow-xl w-full max-w-2xl mx-4 p-8 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent)]" />
+      </div>
+    </div>
+  ),
 });
 
 interface ChatButtonProps {
@@ -27,6 +34,10 @@ export default function ChatButton({
   const [showModal, setShowModal] = useState(false);
   const roomId = `${projectId}_${applicationId}`;
 
+  const handleClose = () => {
+    setShowModal(false);
+  };
+
   return (
     <>
       <button
@@ -41,6 +52,7 @@ export default function ChatButton({
           roomId={roomId}
           otherUser={otherUser}
           projectTitle={projectTitle}
+          onClose={handleClose}
         />
       )}
     </>

@@ -10,6 +10,7 @@ interface ChatModalProps {
   roomId: string;
   otherUser: UserProfile;
   projectTitle: string;
+  onClose: () => void;
 }
 
 interface ChatMessage {
@@ -24,6 +25,7 @@ export default function ChatModal({
   roomId,
   otherUser,
   projectTitle,
+  onClose,
 }: ChatModalProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -122,7 +124,7 @@ export default function ChatModal({
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !currentUser) return;
 
     try {
       console.log('Sending message to room:', roomId);
@@ -146,6 +148,21 @@ export default function ChatModal({
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
+      // Restore the message if sending failed
+      setNewMessage(newMessage);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    sendMessage();
+  };
+
+  const handleClose = () => {
+    // Find the parent element and remove it
+    const modalElement = document.querySelector('.modal-root');
+    if (modalElement) {
+      modalElement.remove();
     }
   };
 
@@ -184,7 +201,7 @@ export default function ChatModal({
             Chat with {otherUser.full_name}
           </h3>
           <button
-            onClick={() => {}}
+            onClick={onClose}
             className="p-2 hover:bg-[var(--accent)]/10 rounded-lg transition-colors"
           >
             <XMarkIcon className="w-5 h-5 text-[var(--accent)]" />
@@ -228,7 +245,7 @@ export default function ChatModal({
         </div>
 
         {/* Message Input */}
-        <form onSubmit={sendMessage} className="p-4 border-t border-[var(--accent)]/10">
+        <form onSubmit={handleSubmit} className="p-4 border-t border-[var(--accent)]/10">
           <div className="flex space-x-2">
             <input
               type="text"
