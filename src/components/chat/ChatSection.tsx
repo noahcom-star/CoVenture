@@ -40,7 +40,7 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
     fetchChatRooms();
     
     // Subscribe to both chat rooms and messages updates
-    const chatRoomsSubscription = supabase
+    const channel = supabase
       .channel('chat_updates')
       .on(
         'postgres_changes',
@@ -57,19 +57,22 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'chat_messages'
         },
         (payload) => {
-          console.log('Chat message update:', payload);
+          console.log('New chat message:', payload);
+          // Update the chat room's last message and timestamp
           fetchChatRooms();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Chat updates subscription status:', status);
+      });
 
     return () => {
-      chatRoomsSubscription.unsubscribe();
+      channel.unsubscribe();
     };
   }, [currentUser.user_id]);
 

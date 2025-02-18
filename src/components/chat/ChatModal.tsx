@@ -31,12 +31,13 @@ export default function ChatModal({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchMessages();
     
-    // Subscribe to new messages
+    // Set up real-time subscription
     const channel = supabase
       .channel(`room:${chatRoomId}`)
       .on(
@@ -47,14 +48,37 @@ export default function ChatModal({
           table: 'chat_messages',
           filter: `room_id=eq.${chatRoomId}`,
         },
-        (payload) => {
-          console.log('New message:', payload);
-          const newMessage = payload.new as ChatMessage;
-          setMessages((prev) => [...prev, newMessage]);
-          scrollToBottom();
+        async (payload) => {
+          console.log('New message received:', payload);
+          
+          // Fetch the complete message with sender info
+          const { data: newMessage, error } = await supabase
+            .from('chat_messages')
+            .select(`
+              *,
+              sender:profiles!chat_messages_sender_fkey (
+                user_id,
+                full_name,
+                avatar_url
+              )
+            `)
+            .eq('id', payload.new.id)
+            .single();
+
+          if (error) {
+            console.error('Error fetching new message:', error);
+            return;
+          }
+
+          if (newMessage) {
+            setMessages(prev => [...prev, newMessage]);
+            scrollToBottom();
+          }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
 
     return () => {
       channel.unsubscribe();
@@ -98,10 +122,13 @@ export default function ChatModal({
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || sending) return;
 
     try {
-      const { error } = await supabase
+      setSending(true);
+      
+      // First insert the message
+      const { data: insertedMessage, error: insertError } = await supabase
         .from('chat_messages')
         .insert([
           {
@@ -109,12 +136,36 @@ export default function ChatModal({
             sender_id: currentUser.user_id,
             content: newMessage.trim(),
           },
-        ]);
+        ])
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (insertError) throw insertError;
+
+      // Then fetch the complete message with sender info
+      const { data: newMessageWithSender, error: fetchError } = await supabase
+        .from('chat_messages')
+        .select(`
+          *,
+          sender:profiles!chat_messages_sender_fkey (
+            user_id,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('id', insertedMessage.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Update the messages state immediately
+      setMessages(prev => [...prev, newMessageWithSender]);
       setNewMessage('');
+      scrollToBottom();
     } catch (error) {
       console.error('Error sending message:', error);
+    } finally {
+      setSending(false);
     }
   };
 
