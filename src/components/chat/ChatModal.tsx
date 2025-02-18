@@ -48,41 +48,25 @@ export default function ChatModal({
           table: 'chat_messages',
           filter: `room_id=eq.${chatRoomId}`,
         },
-        async (payload) => {
+        (payload) => {
           console.log('New message received:', payload);
           
-          // Only fetch if the message is not from the current user
+          // Only add the message if it's not from the current user
           if (payload.new.sender_id !== currentUser.user_id) {
-            const { data: newMessage, error } = await supabase
-              .from('chat_messages')
-              .select(`
-                *,
-                sender:profiles!chat_messages_sender_fkey (
-                  user_id,
-                  full_name,
-                  avatar_url
-                )
-              `)
-              .eq('id', payload.new.id)
-              .single();
-
-            if (error) {
-              console.error('Error fetching new message:', error);
-              return;
-            }
-
-            if (newMessage) {
-              setMessages(prev => [...prev, newMessage]);
-              scrollToBottom();
-            }
+            const newMessage: ChatMessage = {
+              id: payload.new.id,
+              room_id: payload.new.room_id,
+              sender_id: payload.new.sender_id,
+              content: payload.new.content,
+              created_at: payload.new.created_at,
+            };
+            setMessages(prev => [...prev, newMessage]);
+            scrollToBottom();
           }
         }
       )
       .subscribe((status) => {
-        console.log('Subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to chat room:', chatRoomId);
-        }
+        console.log('Chat subscription status:', status);
       });
 
     return () => {
@@ -100,14 +84,7 @@ export default function ChatModal({
       setLoading(true);
       const { data, error } = await supabase
         .from('chat_messages')
-        .select(`
-          *,
-          sender:profiles!chat_messages_sender_fkey (
-            user_id,
-            full_name,
-            avatar_url
-          )
-        `)
+        .select('*')
         .eq('room_id', chatRoomId)
         .order('created_at', { ascending: true });
 
@@ -133,7 +110,6 @@ export default function ChatModal({
     try {
       setSending(true);
       
-      // First insert the message
       const { data: insertedMessage, error: insertError } = await supabase
         .from('chat_messages')
         .insert([
@@ -148,28 +124,15 @@ export default function ChatModal({
 
       if (insertError) throw insertError;
 
-      // Then fetch the complete message with sender info
-      const { data: newMessageWithSender, error: fetchError } = await supabase
-        .from('chat_messages')
-        .select(`
-          *,
-          sender:profiles!chat_messages_sender_fkey (
-            user_id,
-            full_name,
-            avatar_url
-          )
-        `)
-        .eq('id', insertedMessage.id)
-        .single();
-
-      if (fetchError) throw fetchError;
-
       // Update the messages state immediately
-      setMessages(prev => [...prev, newMessageWithSender]);
-      setNewMessage('');
-      scrollToBottom();
+      if (insertedMessage) {
+        setMessages(prev => [...prev, insertedMessage]);
+        setNewMessage('');
+        scrollToBottom();
+      }
     } catch (error) {
       console.error('Error sending message:', error);
+      toast.error('Failed to send message');
     } finally {
       setSending(false);
     }
