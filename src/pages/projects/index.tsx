@@ -236,13 +236,13 @@ export default function Projects() {
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <Typography variant="h6" gutterBottom>
-                      {application.projects?.title}
+                      {application.project?.title}
                     </Typography>
                     <Typography variant="body2" color="textSecondary" paragraph>
-                      {application.projects?.description}
+                      {application.project?.description}
                     </Typography>
                     <div className="flex flex-wrap gap-2 mb-4">
-                      {application.projects?.required_skills.map((skill, index) => (
+                      {application.project?.required_skills.map((skill, index) => (
                         <span key={index} className="px-2 py-1 bg-gray-200 text-sm rounded-full">
                           {skill}
                         </span>
