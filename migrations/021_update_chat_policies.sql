@@ -1,8 +1,12 @@
--- Drop existing policies
+-- Drop ALL existing policies first
 DROP POLICY IF EXISTS "Users can view their chat rooms" ON chat_rooms;
 DROP POLICY IF EXISTS "Users can create chat rooms" ON chat_rooms;
 DROP POLICY IF EXISTS "Users can view messages in their chat rooms" ON chat_messages;
 DROP POLICY IF EXISTS "Users can send messages in their chat rooms" ON chat_messages;
+DROP POLICY IF EXISTS "chat_rooms_select" ON chat_rooms;
+DROP POLICY IF EXISTS "chat_rooms_insert" ON chat_rooms;
+DROP POLICY IF EXISTS "chat_messages_select" ON chat_messages;
+DROP POLICY IF EXISTS "chat_messages_insert" ON chat_messages;
 
 -- Drop existing triggers and functions
 DROP TRIGGER IF EXISTS update_chat_room_timestamp ON chat_messages;
