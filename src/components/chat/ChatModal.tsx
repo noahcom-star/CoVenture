@@ -67,12 +67,11 @@ export default function ChatModal({
 
   const fetchMessages = async () => {
     try {
-      setLoading(true);
-      const { data, error } = await supabase
+      const { data: messages, error } = await supabase
         .from('chat_messages')
         .select(`
           *,
-          sender:profiles!chat_messages_sender_id_fkey (
+          sender:profiles!chat_messages_sender_fkey (
             user_id,
             full_name,
             avatar_url
@@ -83,17 +82,13 @@ export default function ChatModal({
 
       if (error) {
         console.error('Error fetching messages:', error);
-        throw error;
+        return;
       }
 
-      console.log('Fetched messages:', data);
-      setMessages(data || []);
-      setTimeout(scrollToBottom, 100);
+      setMessages(messages || []);
+      scrollToBottom();
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('Failed to load messages');
-    } finally {
-      setLoading(false);
+      console.error('Error in fetchMessages:', error);
     }
   };
 

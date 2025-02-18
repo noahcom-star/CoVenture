@@ -12,6 +12,12 @@ DROP POLICY IF EXISTS "chat_messages_insert" ON chat_messages;
 DROP TRIGGER IF EXISTS update_chat_room_timestamp ON chat_messages;
 DROP FUNCTION IF EXISTS update_chat_room_timestamp();
 
+-- Add foreign key relationships
+ALTER TABLE chat_messages
+ADD CONSTRAINT chat_messages_sender_fkey
+FOREIGN KEY (sender_id) REFERENCES profiles(user_id)
+ON DELETE CASCADE;
+
 -- Create simplified chat rooms policies
 CREATE POLICY "chat_rooms_select"
   ON chat_rooms FOR SELECT
@@ -21,7 +27,16 @@ CREATE POLICY "chat_rooms_select"
 CREATE POLICY "chat_rooms_insert"
   ON chat_rooms FOR INSERT
   TO authenticated
-  WITH CHECK (true);
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM projects p
+      WHERE p.id = project_id AND p.creator_id = auth.uid()
+    ) OR
+    EXISTS (
+      SELECT 1 FROM project_applications pa
+      WHERE pa.id = application_id AND pa.applicant_id = auth.uid()
+    )
+  );
 
 -- Create simplified chat messages policies
 CREATE POLICY "chat_messages_select"
@@ -33,13 +48,18 @@ CREATE POLICY "chat_messages_insert"
   ON chat_messages FOR INSERT
   TO authenticated
   WITH CHECK (
-    room_id IN (
-      SELECT cr.id FROM chat_rooms cr
-      WHERE cr.project_id IN (
-        SELECT p.id FROM projects p WHERE p.creator_id = auth.uid()
-      )
-      OR cr.application_id IN (
-        SELECT pa.id FROM project_applications pa WHERE pa.applicant_id = auth.uid()
+    auth.uid() = sender_id AND
+    EXISTS (
+      SELECT 1 FROM chat_rooms cr
+      WHERE cr.id = room_id AND (
+        EXISTS (
+          SELECT 1 FROM projects p
+          WHERE p.id = cr.project_id AND p.creator_id = auth.uid()
+        ) OR
+        EXISTS (
+          SELECT 1 FROM project_applications pa
+          WHERE pa.id = cr.application_id AND pa.applicant_id = auth.uid()
+        )
       )
     )
   );
