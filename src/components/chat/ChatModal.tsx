@@ -39,52 +39,55 @@ export default function ChatModal({
     
     // Set up real-time subscription
     const channel = supabase
-      .channel('public:chat_messages')
+      .channel(`chat_room:${chatRoomId}`)
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'chat_messages',
           filter: `room_id=eq.${chatRoomId}`
         },
         (payload) => {
-          console.log('New message received:', payload);
+          console.log('Real-time event received:', payload);
           
-          // Add the new message directly from the payload
-          const newMessage: ChatMessage = {
-            id: payload.new.id,
-            room_id: payload.new.room_id,
-            sender_id: payload.new.sender_id,
-            content: payload.new.content,
-            created_at: payload.new.created_at,
-          };
+          if (payload.eventType === 'INSERT') {
+            // Add the new message directly from the payload
+            const newMessage: ChatMessage = {
+              id: payload.new.id,
+              room_id: payload.new.room_id,
+              sender_id: payload.new.sender_id,
+              content: payload.new.content,
+              created_at: payload.new.created_at,
+            };
 
-          setMessages(prev => {
-            // Check if message already exists
-            if (prev.some(msg => msg.id === newMessage.id)) {
-              return prev;
-            }
-            return [...prev, newMessage];
-          });
-          scrollToBottom();
+            setMessages(prev => {
+              // Check if message already exists
+              if (prev.some(msg => msg.id === newMessage.id)) {
+                return prev;
+              }
+              return [...prev, newMessage];
+            });
+            scrollToBottom();
+          }
         }
       )
-      .subscribe((status) => {
-        console.log('Chat subscription status:', status);
+      .subscribe(async (status) => {
+        console.log('Subscription status:', status);
+        
         if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to chat messages for room:', chatRoomId);
+          console.log('Successfully subscribed to chat room:', chatRoomId);
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('Failed to subscribe to chat messages');
+          console.error('Failed to subscribe to chat room');
           toast.error('Failed to connect to chat. Please try again.');
         }
       });
 
     return () => {
-      console.log('Unsubscribing from chat messages');
-      channel.unsubscribe();
+      console.log('Cleaning up chat subscription');
+      supabase.removeChannel(channel);
     };
-  }, [chatRoomId]);
+  }, [chatRoomId, currentUser.user_id]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
