@@ -17,7 +17,7 @@ const ChatModal = dynamic(() => import('./ChatModal'), {
 });
 
 interface ChatButtonProps {
-  currentUser: UserProfile;
+  currentUser: NonNullable<UserProfile>;
   otherUser: UserProfile;
   projectId: string;
   applicationId: string;

@@ -5,6 +5,7 @@ import { UserProfile } from '@/types/profile';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'react-hot-toast';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface ChatModalProps {
   roomId: string;
@@ -36,7 +37,7 @@ export default function ChatModal({
   const currentUser = useCurrentUser();
 
   useEffect(() => {
-    let subscription: any = null;
+    let subscription: RealtimeChannel | null = null;
     let mounted = true;
     let retryTimeout: NodeJS.Timeout;
 
@@ -156,14 +157,6 @@ export default function ChatModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     sendMessage();
-  };
-
-  const handleClose = () => {
-    // Find the parent element and remove it
-    const modalElement = document.querySelector('.modal-root');
-    if (modalElement) {
-      modalElement.remove();
-    }
   };
 
   const scrollToBottom = () => {
