@@ -33,41 +33,42 @@ export default function ChatModal({
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   useEffect(() => {
     fetchMessages();
-
-    // Subscribe to ALL changes in the chat_messages table
-    const subscription = supabase
+    
+    // Subscribe to new messages
+    const channel = supabase
       .channel(`room:${chatRoomId}`)
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'chat_messages',
-          filter: `room_id=eq.${chatRoomId}`
+          filter: `room_id=eq.${chatRoomId}`,
         },
         (payload) => {
-          console.log('Message update:', payload);
-          fetchMessages();
+          console.log('New message:', payload);
+          const newMessage = payload.new as ChatMessage;
+          setMessages((prev) => [...prev, newMessage]);
+          scrollToBottom();
         }
       )
-      .subscribe((status) => {
-        console.log('Subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      subscription.unsubscribe();
+      channel.unsubscribe();
     };
   }, [chatRoomId]);
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   const fetchMessages = async () => {
     try {
-      const { data: messages, error } = await supabase
+      setLoading(true);
+      const { data, error } = await supabase
         .from('chat_messages')
         .select(`
           *,
@@ -85,10 +86,13 @@ export default function ChatModal({
         return;
       }
 
-      setMessages(messages || []);
-      scrollToBottom();
+      console.log('Fetched messages:', data);
+      setMessages(data || []);
+      setTimeout(scrollToBottom, 100);
     } catch (error) {
       console.error('Error in fetchMessages:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -97,36 +101,20 @@ export default function ChatModal({
     if (!newMessage.trim()) return;
 
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('chat_messages')
         .insert([
           {
             room_id: chatRoomId,
             sender_id: currentUser.user_id,
-            content: newMessage.trim()
-          }
-        ])
-        .select(`
-          *,
-          sender:profiles!chat_messages_sender_id_fkey (
-            user_id,
-            full_name,
-            avatar_url
-          )
-        `)
-        .single();
+            content: newMessage.trim(),
+          },
+        ]);
 
-      if (error) {
-        console.error('Error sending message:', error);
-        throw error;
-      }
-
-      console.log('Sent message:', data);
+      if (error) throw error;
       setNewMessage('');
-      fetchMessages(); // Fetch messages again to ensure we have the latest
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('Failed to send message');
+      console.error('Error sending message:', error);
     }
   };
 
