@@ -6,8 +6,6 @@ import { UserProfile } from '@/types/profile';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'react-hot-toast';
 import ChatModal from './ChatModal';
-import { UserCircleIcon, ClockIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
-import { formatDistanceToNow } from 'date-fns';
 
 interface ChatSectionProps {
   currentUser: UserProfile;
@@ -26,11 +24,11 @@ interface ChatRoom {
   application: {
     applicant: UserProfile;
   };
-  last_message: {
+  last_message?: {
     content: string;
     created_at: string;
     sender_id: string;
-  } | null;
+  };
 }
 
 export default function ChatSection({ currentUser }: ChatSectionProps) {
@@ -81,15 +79,13 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
   const fetchChatRooms = async () => {
     try {
       setLoading(true);
-      console.log('Fetching chat rooms for user:', currentUser.user_id);
-      
-      // First, get the latest message for each chat room
       const { data: rooms, error } = await supabase
         .from('chat_rooms')
         .select(`
           *,
           project:projects!inner (
             title,
+            creator_id,
             creator:profiles!projects_creator_id_fkey (
               user_id,
               full_name,
@@ -97,6 +93,7 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
             )
           ),
           application:project_applications!inner (
+            applicant_id,
             applicant:profiles!project_applications_applicant_id_fkey (
               user_id,
               full_name,
@@ -109,35 +106,13 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
             sender_id
           )
         `)
-        .or(`project->creator->user_id.eq.${currentUser.user_id},application->applicant->user_id.eq.${currentUser.user_id}`)
+        .or(`project.creator_id.eq.${currentUser.user_id},application.applicant_id.eq.${currentUser.user_id}`)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
 
-      // For each room, get its latest message
-      const roomsWithLatestMessages = await Promise.all(
-        (rooms || []).map(async (room) => {
-          const { data: messages, error: msgError } = await supabase
-            .from('chat_messages')
-            .select('*')
-            .eq('room_id', room.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-
-          if (msgError && msgError.code !== 'PGRST116') {
-            console.error('Error fetching latest message:', msgError);
-          }
-
-          return {
-            ...room,
-            last_message: messages || null
-          };
-        })
-      );
-
-      console.log('Fetched chat rooms:', roomsWithLatestMessages);
-      setChatRooms(roomsWithLatestMessages);
+      console.log('Fetched chat rooms:', rooms);
+      setChatRooms(rooms || []);
     } catch (error) {
       console.error('Error fetching chat rooms:', error);
       toast.error('Failed to load chat rooms');
@@ -147,10 +122,9 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
   };
 
   const getOtherUser = (room: ChatRoom): UserProfile => {
-    if (room.project.creator.user_id === currentUser.user_id) {
-      return room.application.applicant;
-    }
-    return room.project.creator;
+    return room.project.creator.user_id === currentUser.user_id
+      ? room.application.applicant
+      : room.project.creator;
   };
 
   if (loading) {
@@ -162,93 +136,69 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
   }
 
   return (
-    <div className="flex h-full">
-      {/* Chat rooms list */}
-      <div className="w-1/3 border-r border-gray-200 overflow-y-auto">
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Messages</h2>
-        </div>
-        
-        {loading ? (
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-          </div>
-        ) : chatRooms.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-32 text-gray-500">
-            <ChatBubbleLeftRightIcon className="w-8 h-8 mb-2" />
-            <p>No conversations yet</p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-gray-200">
-            {chatRooms.map((room) => {
-              const otherUser = getOtherUser(room);
-              const isSelected = selectedRoom?.id === room.id;
-              const lastMessage = room.last_message;
-              
-              return (
-                <li
-                  key={room.id}
-                  onClick={() => setSelectedRoom(room)}
-                  className={`cursor-pointer hover:bg-gray-50 ${
-                    isSelected ? 'bg-gray-100' : ''
-                  }`}
-                >
-                  <div className="flex items-center px-4 py-4 sm:px-6">
-                    <div className="min-w-0 flex-1 flex items-center">
-                      <div className="flex-shrink-0">
-                        <img
-                          className="h-12 w-12 rounded-full"
-                          src={otherUser?.avatar_url || '/default-avatar.png'}
-                          alt={otherUser?.full_name || 'User avatar'}
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1 px-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {otherUser?.full_name || 'Unknown User'}
-                          </p>
-                          <p className="mt-1 text-sm text-gray-500 truncate">
-                            {lastMessage ? (
-                              <>
-                                {lastMessage.sender_id === currentUser.user_id ? 'You: ' : ''}
-                                {lastMessage.content}
-                              </>
-                            ) : (
-                              'No messages yet'
-                            )}
-                          </p>
-                        </div>
-                      </div>
-                      {lastMessage && (
-                        <div className="flex-shrink-0 text-xs text-gray-500">
-                          {formatDistanceToNow(new Date(lastMessage.created_at), { addSuffix: true })}
-                        </div>
+    <div className="h-[600px] bg-[var(--navy-light)]/50 backdrop-blur-lg rounded-xl">
+      <div className="grid grid-cols-3 h-full">
+        {/* Chat Rooms List */}
+        <div className="border-r border-[var(--navy-dark)] p-4">
+          <h3 className="text-xl font-semibold text-[var(--white)] mb-4">Messages</h3>
+          {chatRooms.length > 0 ? (
+            <div className="space-y-2">
+              {chatRooms.map((room) => {
+                const otherUser = getOtherUser(room);
+                return (
+                  <motion.button
+                    key={room.id}
+                    onClick={() => setSelectedRoom(room)}
+                    className={`w-full flex items-center p-3 rounded-lg transition-colors ${
+                      selectedRoom?.id === room.id
+                        ? 'bg-[var(--accent)]/20'
+                        : 'hover:bg-[var(--navy-dark)]'
+                    }`}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
+                      <span className="text-lg text-[var(--accent)]">
+                        {otherUser.full_name?.[0] || '?'}
+                      </span>
+                    </div>
+                    <div className="ml-3 text-left">
+                      <h4 className="text-[var(--white)] font-medium">{otherUser.full_name}</h4>
+                      <p className="text-sm text-[var(--slate)] truncate">
+                        {room.project.title}
+                      </p>
+                      {room.last_message && (
+                        <p className="text-xs text-[var(--slate)] mt-1">
+                          {new Date(room.last_message.created_at).toLocaleDateString()}
+                        </p>
                       )}
                     </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
+                  </motion.button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center text-[var(--slate)]">
+              <p>No messages yet.</p>
+              <p className="text-sm mt-2">Your chat conversations will appear here.</p>
+            </div>
+          )}
+        </div>
 
-      {/* Chat messages area */}
-      <div className="flex-1 flex flex-col">
-        {selectedRoom ? (
-          <ChatModal
-            roomId={selectedRoom.id}
-            otherUser={getOtherUser(selectedRoom)}
-            projectTitle={selectedRoom.project.title}
-            onClose={() => setSelectedRoom(null)}
-            currentUser={currentUser}
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-gray-500">
-            <ChatBubbleLeftRightIcon className="w-12 h-12 mb-4" />
-            <p className="text-lg">Select a conversation to start messaging</p>
-          </div>
-        )}
+        {/* Chat Area */}
+        <div className="col-span-2">
+          {selectedRoom ? (
+            <ChatModal
+              isOpen={true}
+              onClose={() => setSelectedRoom(null)}
+              chatRoomId={selectedRoom.id}
+              currentUser={currentUser}
+              otherUser={getOtherUser(selectedRoom)}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-[var(--slate)]">
+              Select a conversation to start chatting
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
