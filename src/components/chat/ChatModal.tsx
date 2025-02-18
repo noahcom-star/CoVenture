@@ -4,13 +4,12 @@ import { XMarkIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import { UserProfile } from '@/types/profile';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'react-hot-toast';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
 
 interface ChatModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  chatRoomId: string;
-  currentUser: UserProfile;
+  roomId: string;
   otherUser: UserProfile;
+  projectTitle: string;
 }
 
 interface ChatMessage {
@@ -22,11 +21,9 @@ interface ChatMessage {
 }
 
 export default function ChatModal({
-  isOpen,
-  onClose,
-  chatRoomId,
-  currentUser,
+  roomId,
   otherUser,
+  projectTitle,
 }: ChatModalProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -34,6 +31,16 @@ export default function ChatModal({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [retryCount, setRetryCount] = useState(0);
   const maxRetries = 3;
+  const currentUser = useCurrentUser();
+
+  // Return loading state if currentUser is not yet available
+  if (!currentUser) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     let subscription: any = null;
@@ -42,7 +49,7 @@ export default function ChatModal({
 
     const setupRealtimeSubscription = async () => {
       try {
-        console.log(`Setting up subscription for room ${chatRoomId}...`);
+        console.log(`Setting up subscription for room ${roomId}...`);
         
         // Remove any existing subscription
         if (subscription) {
@@ -51,91 +58,83 @@ export default function ChatModal({
 
         // Subscribe to the chat_messages table for this room
         subscription = supabase
-          .channel(`room:${chatRoomId}`)
+          .channel(`room:${roomId}`)
           .on('postgres_changes', {
             event: 'INSERT',
             schema: 'public',
             table: 'chat_messages',
-            filter: `room_id=eq.${chatRoomId}`,
+            filter: `room_id=eq.${roomId}`,
           }, (payload) => {
             console.log('Received real-time message:', payload);
+            
             if (mounted) {
-              setMessages(prev => {
-                // Check if message already exists to prevent duplicates
-                const exists = prev.some(msg => msg.id === payload.new.id);
-                if (!exists) {
-                  return [...prev, payload.new as ChatMessage];
+              setMessages((prevMessages) => {
+                const newMessage = payload.new as ChatMessage;
+                // Check if message already exists
+                if (!prevMessages.some(msg => msg.id === newMessage.id)) {
+                  return [...prevMessages, newMessage];
                 }
-                return prev;
+                return prevMessages;
               });
-              scrollToBottom();
             }
           })
           .subscribe((status) => {
-            console.log(`Subscription status for room ${chatRoomId}:`, status);
+            console.log(`Subscription status for room ${roomId}:`, status);
             
             if (status === 'SUBSCRIBED') {
-              console.log('Successfully subscribed to room:', chatRoomId);
+              console.log('Successfully subscribed to room:', roomId);
               setRetryCount(0); // Reset retry count on successful subscription
             } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-              console.error('Subscription error:', status);
-              handleSubscriptionError();
+              console.error('Subscription failed:', status);
+              if (mounted && retryCount < maxRetries) {
+                const nextRetry = Math.min(1000 * Math.pow(2, retryCount), 10000);
+                console.log(`Retrying in ${nextRetry}ms...`);
+                retryTimeout = setTimeout(() => {
+                  setRetryCount(prev => prev + 1);
+                  setupRealtimeSubscription();
+                }, nextRetry);
+              }
             }
           });
-
       } catch (error) {
         console.error('Error setting up subscription:', error);
-        handleSubscriptionError();
-      }
-    };
-
-    const handleSubscriptionError = () => {
-      if (retryCount < maxRetries && mounted) {
-        console.log(`Retrying subscription... Attempt ${retryCount + 1}/${maxRetries}`);
-        setRetryCount(prev => prev + 1);
-        retryTimeout = setTimeout(setupRealtimeSubscription, 2000 * Math.pow(2, retryCount));
-      } else if (mounted) {
-        toast.error('Failed to connect to chat. Please try again later.');
+        if (mounted && retryCount < maxRetries) {
+          const nextRetry = Math.min(1000 * Math.pow(2, retryCount), 10000);
+          console.log(`Retrying in ${nextRetry}ms...`);
+          retryTimeout = setTimeout(() => {
+            setRetryCount(prev => prev + 1);
+            setupRealtimeSubscription();
+          }, nextRetry);
+        }
       }
     };
 
     // Initial setup
-    fetchMessages();
     setupRealtimeSubscription();
+    fetchMessages();
 
-    // Cleanup function
     return () => {
       mounted = false;
-      if (subscription) {
-        console.log('Cleaning up subscription...');
-        subscription.unsubscribe();
-      }
-      if (retryTimeout) {
-        clearTimeout(retryTimeout);
-      }
+      if (subscription) subscription.unsubscribe();
+      if (retryTimeout) clearTimeout(retryTimeout);
     };
-  }, [chatRoomId, retryCount]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, [roomId, retryCount]);
 
   const fetchMessages = async () => {
     try {
       setIsLoading(true);
-      console.log('Fetching messages for room:', chatRoomId);
+      console.log('Fetching messages for room:', roomId);
       
       const { data, error } = await supabase
         .from('chat_messages')
         .select('*')
-        .eq('room_id', chatRoomId)
+        .eq('room_id', roomId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
 
       console.log('Fetched messages:', data);
       setMessages(data || []);
-      scrollToBottom();
     } catch (error) {
       console.error('Error fetching messages:', error);
       toast.error('Failed to load messages');
@@ -144,13 +143,11 @@ export default function ChatModal({
     }
   };
 
-  const sendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const sendMessage = async () => {
     if (!newMessage.trim()) return;
 
     try {
-      console.log('Sending message to room:', chatRoomId);
+      console.log('Sending message to room:', roomId);
       
       const messageToSend = newMessage.trim();
       setNewMessage(''); // Clear input immediately for better UX
@@ -159,24 +156,30 @@ export default function ChatModal({
         .from('chat_messages')
         .insert([
           {
-            room_id: chatRoomId,
+            room_id: roomId,
             sender_id: currentUser.user_id,
             content: messageToSend,
           },
         ]);
 
       if (error) throw error;
-      
-      console.log('Message sent successfully');
+
+      // Message will be added to the UI through the real-time subscription
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
-      // Restore the message in case of error
-      setNewMessage(newMessage);
     }
   };
 
-  if (!isOpen) return null;
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  if (!roomId) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -192,7 +195,7 @@ export default function ChatModal({
             Chat with {otherUser.full_name}
           </h3>
           <button
-            onClick={onClose}
+            onClick={() => {}}
             className="p-2 hover:bg-[var(--accent)]/10 rounded-lg transition-colors"
           >
             <XMarkIcon className="w-5 h-5 text-[var(--accent)]" />
