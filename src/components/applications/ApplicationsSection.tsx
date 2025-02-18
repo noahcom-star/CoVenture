@@ -8,7 +8,8 @@ import {
   XMarkIcon,
   ChatBubbleLeftRightIcon,
   ClockIcon,
-  UserCircleIcon
+  UserCircleIcon,
+  UserGroupIcon
 } from '@heroicons/react/24/outline';
 import { Tab } from '@headlessui/react';
 import ChatButton from '@/components/chat/ChatButton';
@@ -242,11 +243,31 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                     <div className="flex justify-between items-start">
                       <div>
                         <h3 className="text-lg font-semibold text-[var(--white)]">
-                          {application.projects?.title}
+                          {application.project?.title}
                         </h3>
                         <p className="text-[var(--slate)] mt-1">
-                          {application.projects?.description}
+                          {application.project?.description}
                         </p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {application.project?.required_skills.map((skill) => (
+                            <span
+                              key={skill}
+                              className="px-2 py-1 bg-[var(--accent)]/10 text-[var(--accent)] rounded-full text-xs"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                        <div className="flex items-center space-x-4 mt-4 text-sm text-[var(--slate)]">
+                          <span className="flex items-center space-x-1">
+                            <UserGroupIcon className="w-4 h-4" />
+                            <span>{application.project?.team_size} members</span>
+                          </span>
+                          <span className="flex items-center space-x-1">
+                            <ClockIcon className="w-4 h-4" />
+                            <span>{application.project?.timeline}</span>
+                          </span>
+                        </div>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                         application.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
@@ -255,47 +276,6 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                       }`}>
                         {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
                       </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-4 text-sm text-[var(--slate)]">
-                      <div className="flex items-center gap-2">
-                        <ClockIcon className="w-4 h-4" />
-                        <span>Applied {new Date(application.created_at).toLocaleDateString()}</span>
-                      </div>
-                      {application.projects?.creator && (
-                        <div className="flex items-center gap-2">
-                          {application.projects.creator.avatar_url ? (
-                            <img
-                              src={application.projects.creator.avatar_url}
-                              alt={application.projects.creator.full_name}
-                              className="w-4 h-4 rounded-full"
-                            />
-                          ) : (
-                            <UserCircleIcon className="w-4 h-4" />
-                          )}
-                          <span>Created by {application.projects.creator.full_name}</span>
-                        </div>
-                      )}
-                      {application.linkedin_url && (
-                        <a
-                          href={application.linkedin_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[var(--accent)] hover:underline"
-                        >
-                          LinkedIn
-                        </a>
-                      )}
-                      {application.github_url && (
-                        <a
-                          href={application.github_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[var(--accent)] hover:underline"
-                        >
-                          GitHub
-                        </a>
-                      )}
                     </div>
 
                     <div className="flex items-center justify-between pt-4 border-t border-[var(--navy-dark)]">
@@ -323,6 +303,7 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                               otherUser={application.projects.creator}
                               projectId={application.project_id}
                               applicationId={application.id}
+                              projectTitle={application.project?.title || ''}
                             />
                             {application.status === 'accepted' && (
                               <span className="ml-2 text-sm text-[var(--accent)]">
@@ -356,7 +337,7 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                     <div className="flex justify-between items-start">
                       <div>
                         <h3 className="text-lg font-semibold text-[var(--white)]">
-                          {application.projects?.title}
+                          {application.project?.title}
                         </h3>
                         <p className="text-[var(--slate)] mt-1">
                           Application from {application.profiles?.full_name}
@@ -441,6 +422,7 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                               otherUser={application.profiles}
                               projectId={application.project_id}
                               applicationId={application.id}
+                              projectTitle={application.project?.title || ''}
                             />
                             {application.status === 'accepted' && (
                               <span className="ml-2 text-sm text-[var(--accent)]">

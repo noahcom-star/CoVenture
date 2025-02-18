@@ -47,6 +47,11 @@ export interface ProjectApplication {
   profiles?: UserProfile;
   project?: {
     title: string;
+    description: string;
+    required_skills: string[];
+    team_size: number;
+    timeline: string;
+    creator?: UserProfile;
   };
 }
 
