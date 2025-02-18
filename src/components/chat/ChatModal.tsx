@@ -39,7 +39,7 @@ export default function ChatModal({
     
     // Set up real-time subscription
     const channel = supabase
-      .channel('chat_messages')
+      .channel(`room:${chatRoomId}`)
       .on(
         'postgres_changes',
         {
@@ -48,27 +48,34 @@ export default function ChatModal({
           table: 'chat_messages',
           filter: `room_id=eq.${chatRoomId}`
         },
-        (payload) => {
+        async (payload) => {
           console.log('New message received:', payload);
           
-          // Add all new messages to the state
-          const newMessage: ChatMessage = {
-            id: payload.new.id,
-            room_id: payload.new.room_id,
-            sender_id: payload.new.sender_id,
-            content: payload.new.content,
-            created_at: payload.new.created_at,
-          };
-          
-          setMessages(prev => [...prev, newMessage]);
-          scrollToBottom();
+          // Fetch the complete message data
+          const { data: newMessage, error } = await supabase
+            .from('chat_messages')
+            .select('*')
+            .eq('id', payload.new.id)
+            .single();
+
+          if (error) {
+            console.error('Error fetching new message:', error);
+            return;
+          }
+
+          if (newMessage) {
+            // Prevent duplicate messages
+            setMessages(prev => {
+              const exists = prev.some(msg => msg.id === newMessage.id);
+              if (exists) return prev;
+              return [...prev, newMessage];
+            });
+            scrollToBottom();
+          }
         }
       )
-      .subscribe((status, err) => {
+      .subscribe((status) => {
         console.log('Chat subscription status:', status);
-        if (err) {
-          console.error('Subscription error:', err);
-        }
       });
 
     return () => {
@@ -111,7 +118,7 @@ export default function ChatModal({
     try {
       setSending(true);
       
-      const { data: insertedMessage, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('chat_messages')
         .insert([
           {
@@ -119,18 +126,12 @@ export default function ChatModal({
             sender_id: currentUser.user_id,
             content: newMessage.trim(),
           },
-        ])
-        .select()
-        .single();
+        ]);
 
       if (insertError) throw insertError;
 
-      // Update messages immediately for the sender
-      if (insertedMessage) {
-        setMessages(prev => [...prev, insertedMessage]);
-        setNewMessage('');
-        scrollToBottom();
-      }
+      // Only clear the input field, let the subscription handle the message display
+      setNewMessage('');
       
     } catch (error) {
       console.error('Error sending message:', error);
