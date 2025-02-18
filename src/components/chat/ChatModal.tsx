@@ -51,22 +51,30 @@ export default function ChatModal({
         (payload) => {
           console.log('New message received:', payload);
           
-          // Only add the message if it's not from the current user
-          if (payload.new.sender_id !== currentUser.user_id) {
-            const newMessage: ChatMessage = {
-              id: payload.new.id,
-              room_id: payload.new.room_id,
-              sender_id: payload.new.sender_id,
-              content: payload.new.content,
-              created_at: payload.new.created_at,
-            };
-            setMessages(prev => [...prev, newMessage]);
-            scrollToBottom();
-          }
+          // Add all new messages to the state
+          const newMessage: ChatMessage = {
+            id: payload.new.id,
+            room_id: payload.new.room_id,
+            sender_id: payload.new.sender_id,
+            content: payload.new.content,
+            created_at: payload.new.created_at,
+          };
+          
+          // Only add if not already in messages
+          setMessages(prev => {
+            if (prev.some(msg => msg.id === newMessage.id)) {
+              return prev;
+            }
+            return [...prev, newMessage];
+          });
+          scrollToBottom();
         }
       )
       .subscribe((status) => {
         console.log('Chat subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to chat room:', chatRoomId);
+        }
       });
 
     return () => {
@@ -110,7 +118,7 @@ export default function ChatModal({
     try {
       setSending(true);
       
-      const { data: insertedMessage, error: insertError } = await supabase
+      const { error: insertError } = await supabase
         .from('chat_messages')
         .insert([
           {
@@ -118,18 +126,13 @@ export default function ChatModal({
             sender_id: currentUser.user_id,
             content: newMessage.trim(),
           },
-        ])
-        .select()
-        .single();
+        ]);
 
       if (insertError) throw insertError;
 
-      // Update the messages state immediately
-      if (insertedMessage) {
-        setMessages(prev => [...prev, insertedMessage]);
-        setNewMessage('');
-        scrollToBottom();
-      }
+      // Clear the input field
+      setNewMessage('');
+      
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
