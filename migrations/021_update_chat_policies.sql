@@ -12,6 +12,10 @@ DROP POLICY IF EXISTS "chat_messages_insert" ON chat_messages;
 DROP TRIGGER IF EXISTS update_chat_room_timestamp ON chat_messages;
 DROP FUNCTION IF EXISTS update_chat_room_timestamp();
 
+-- Add unique constraint to profiles.user_id
+ALTER TABLE profiles
+ADD CONSTRAINT profiles_user_id_key UNIQUE (user_id);
+
 -- Add foreign key relationships
 ALTER TABLE chat_messages
 ADD CONSTRAINT chat_messages_sender_fkey
