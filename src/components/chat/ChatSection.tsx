@@ -240,6 +240,8 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
             roomId={selectedRoom.id}
             otherUser={getOtherUser(selectedRoom)}
             projectTitle={selectedRoom.project.title}
+            onClose={() => setSelectedRoom(null)}
+            currentUser={currentUser}
           />
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-gray-500">
