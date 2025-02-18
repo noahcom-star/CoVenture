@@ -4,7 +4,6 @@ import { UserProfile } from '@/types/profile';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface ChatModalProps {
   isOpen: boolean;
@@ -31,115 +30,70 @@ export default function ChatModal({
 }: ChatModalProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const channelRef = useRef<RealtimeChannel | null>(null);
-
-  useEffect(() => {
-    fetchMessages();
-    setupRealtimeSubscription();
-
-    return () => {
-      if (channelRef.current) {
-        console.log('Cleaning up subscription for room:', chatRoomId);
-        channelRef.current.unsubscribe();
-        channelRef.current = null;
-      }
-    };
-  }, [chatRoomId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  useEffect(() => {
+    fetchMessages();
+
+    // Subscribe to ALL changes in the chat_messages table
+    const subscription = supabase
+      .channel(`room:${chatRoomId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `room_id=eq.${chatRoomId}`
+        },
+        (payload) => {
+          console.log('Message update:', payload);
+          fetchMessages();
+        }
+      )
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [chatRoomId]);
+
   const fetchMessages = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('chat_messages')
-        .select('*')
+        .select(`
+          *,
+          sender:profiles!chat_messages_sender_id_fkey (
+            user_id,
+            full_name,
+            avatar_url
+          )
+        `)
         .eq('room_id', chatRoomId)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
-      
-      // Sort messages by timestamp
-      const sortedMessages = (data || []).sort((a, b) => 
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      );
-      
-      setMessages(sortedMessages);
-      setIsLoading(false);
-      setTimeout(scrollToBottom, 100);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-      toast.error('Failed to load messages');
-    }
-  };
-
-  const setupRealtimeSubscription = async () => {
-    try {
-      if (channelRef.current) {
-        console.log('Unsubscribing from previous channel...');
-        await channelRef.current.unsubscribe();
-        channelRef.current = null;
+      if (error) {
+        console.error('Error fetching messages:', error);
+        throw error;
       }
 
-      console.log('Setting up new subscription for room:', chatRoomId);
-      const channel = supabase.channel(`room:${chatRoomId}`, {
-        config: {
-          broadcast: { self: true },
-        },
-      });
-
-      // Add channel state change logging
-      channel.on('system', { event: '*' }, (payload) => {
-        console.log('Channel system event:', payload);
-      });
-
-      channel
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'chat_messages',
-          filter: `room_id=eq.${chatRoomId}`,
-        }, (payload) => {
-          console.log('New message payload:', payload);
-          
-          if (payload.new) {
-            const newMessage = payload.new as ChatMessage;
-            console.log('Processing new message:', newMessage);
-            
-            setMessages(prev => {
-              // Prevent duplicate messages
-              if (prev.some(msg => msg.id === newMessage.id)) {
-                console.log('Duplicate message detected, skipping...');
-                return prev;
-              }
-              
-              console.log('Adding new message to state');
-              const updated = [...prev, newMessage].sort((a, b) => 
-                new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-              );
-              return updated;
-            });
-            
-            setTimeout(scrollToBottom, 100);
-          }
-        })
-        .subscribe(async (status) => {
-          console.log(`Subscription status for room ${chatRoomId}:`, status);
-          
-          if (status === 'SUBSCRIBED') {
-            console.log('Fetching messages after subscription...');
-            await fetchMessages();
-          }
-        });
-
-      channelRef.current = channel;
+      console.log('Fetched messages:', data);
+      setMessages(data || []);
+      setTimeout(scrollToBottom, 100);
     } catch (error) {
-      console.error('Error in setupRealtimeSubscription:', error);
-      toast.error('Failed to connect to chat');
-      setTimeout(setupRealtimeSubscription, 3000);
+      console.error('Error:', error);
+      toast.error('Failed to load messages');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -148,46 +102,36 @@ export default function ChatModal({
     if (!newMessage.trim()) return;
 
     try {
-      const messageToSend = newMessage.trim();
-      setNewMessage(''); // Clear input immediately
-
-      const now = new Date().toISOString();
-      console.log('Sending message to room:', chatRoomId);
-      
       const { data, error } = await supabase
         .from('chat_messages')
         .insert([
           {
             room_id: chatRoomId,
             sender_id: currentUser.user_id,
-            content: messageToSend,
-            created_at: now
-          },
+            content: newMessage.trim()
+          }
         ])
-        .select()
+        .select(`
+          *,
+          sender:profiles!chat_messages_sender_id_fkey (
+            user_id,
+            full_name,
+            avatar_url
+          )
+        `)
         .single();
 
       if (error) {
-        console.error('Error inserting message:', error);
+        console.error('Error sending message:', error);
         throw error;
       }
 
-      console.log('Message sent successfully:', data);
-
-      // Optimistically add message to state
-      setMessages(prev => {
-        const updated = [...prev, data].sort((a, b) => 
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
-        return updated;
-      });
-      
-      setTimeout(scrollToBottom, 100);
+      console.log('Sent message:', data);
+      setNewMessage('');
+      fetchMessages(); // Fetch messages again to ensure we have the latest
     } catch (error) {
-      console.error('Error in sendMessage:', error);
+      console.error('Error:', error);
       toast.error('Failed to send message');
-      // Restore the message in the input if it failed to send
-      setNewMessage(newMessage);
     }
   };
 
@@ -230,7 +174,7 @@ export default function ChatModal({
 
             {/* Messages */}
             <div className="h-96 overflow-y-auto p-4 space-y-4">
-              {isLoading ? (
+              {loading ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[var(--accent)]" />
                 </div>

@@ -8,59 +8,39 @@ DROP POLICY IF EXISTS "Users can send messages in their chat rooms" ON chat_mess
 DROP TRIGGER IF EXISTS update_chat_room_timestamp ON chat_messages;
 DROP FUNCTION IF EXISTS update_chat_room_timestamp();
 
--- Create new chat rooms policies
-CREATE POLICY "Users can view their chat rooms"
+-- Create simplified chat rooms policies
+CREATE POLICY "chat_rooms_select"
   ON chat_rooms FOR SELECT
   TO authenticated
-  USING (
-    auth.uid() IN (
-      SELECT creator_id FROM projects WHERE id = project_id
-      UNION
-      SELECT applicant_id FROM project_applications WHERE id = application_id
-    )
-  );
+  USING (true);
 
-CREATE POLICY "Users can create chat rooms"
+CREATE POLICY "chat_rooms_insert"
   ON chat_rooms FOR INSERT
   TO authenticated
-  WITH CHECK (
-    auth.uid() IN (
-      SELECT creator_id FROM projects WHERE id = project_id
-      UNION
-      SELECT applicant_id FROM project_applications WHERE id = application_id
-    )
-  );
+  WITH CHECK (true);
 
--- Create new chat messages policies
-CREATE POLICY "Users can view messages in their chat rooms"
+-- Create simplified chat messages policies
+CREATE POLICY "chat_messages_select"
   ON chat_messages FOR SELECT
   TO authenticated
-  USING (
-    room_id IN (
-      SELECT id FROM chat_rooms
-      WHERE auth.uid() IN (
-        SELECT creator_id FROM projects WHERE id = project_id
-        UNION
-        SELECT applicant_id FROM project_applications WHERE id = application_id
-      )
-    )
-  );
+  USING (true);
 
-CREATE POLICY "Users can send messages in their chat rooms"
+CREATE POLICY "chat_messages_insert"
   ON chat_messages FOR INSERT
   TO authenticated
   WITH CHECK (
     room_id IN (
-      SELECT id FROM chat_rooms
-      WHERE auth.uid() IN (
-        SELECT creator_id FROM projects WHERE id = project_id
-        UNION
-        SELECT applicant_id FROM project_applications WHERE id = application_id
+      SELECT cr.id FROM chat_rooms cr
+      WHERE cr.project_id IN (
+        SELECT p.id FROM projects p WHERE p.creator_id = auth.uid()
+      )
+      OR cr.application_id IN (
+        SELECT pa.id FROM project_applications pa WHERE pa.applicant_id = auth.uid()
       )
     )
   );
 
--- Create new function and trigger to update chat_rooms updated_at
+-- Create function to update chat room timestamp
 CREATE OR REPLACE FUNCTION update_chat_room_timestamp()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -71,6 +51,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Create trigger for updating chat room timestamp
 CREATE TRIGGER update_chat_room_timestamp
   AFTER INSERT ON chat_messages
   FOR EACH ROW
