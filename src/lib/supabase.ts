@@ -48,5 +48,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     params: {
       eventsPerSecond: 10
     }
-  }
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'supabase-js/2.0.0',
+    },
+  },
 }); 
