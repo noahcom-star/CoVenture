@@ -37,57 +37,48 @@ export default function ChatModal({
   useEffect(() => {
     fetchMessages();
     
-    // Set up real-time subscription
-    const channel = supabase
-      .channel(`chat_room:${chatRoomId}`)
+    // Set up real-time subscription with broadcast
+    const channelA = supabase.channel('chat_messages');
+    
+    channelA
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'chat_messages',
           filter: `room_id=eq.${chatRoomId}`
         },
         (payload) => {
-          console.log('Real-time event received:', payload);
+          console.log('New message received:', payload);
           
-          if (payload.eventType === 'INSERT') {
-            // Add the new message directly from the payload
-            const newMessage: ChatMessage = {
-              id: payload.new.id,
-              room_id: payload.new.room_id,
-              sender_id: payload.new.sender_id,
-              content: payload.new.content,
-              created_at: payload.new.created_at,
-            };
-
-            setMessages(prev => {
-              // Check if message already exists
-              if (prev.some(msg => msg.id === newMessage.id)) {
-                return prev;
-              }
-              return [...prev, newMessage];
-            });
-            scrollToBottom();
-          }
+          // Add the new message to state if it's not already there
+          const newMessage: ChatMessage = payload.new as ChatMessage;
+          
+          setMessages(prev => {
+            // Don't add if message already exists
+            if (prev.some(msg => msg.id === newMessage.id)) {
+              return prev;
+            }
+            return [...prev, newMessage];
+          });
+          scrollToBottom();
         }
       )
-      .subscribe(async (status) => {
-        console.log('Subscription status:', status);
-        
+      .subscribe((status, err) => {
         if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to chat room:', chatRoomId);
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('Failed to subscribe to chat room');
-          toast.error('Failed to connect to chat. Please try again.');
+          console.log('Successfully subscribed to chat messages');
+        }
+        if (err) {
+          console.error('Subscription error:', err);
         }
       });
 
     return () => {
-      console.log('Cleaning up chat subscription');
-      supabase.removeChannel(channel);
+      console.log('Unsubscribing from chat messages');
+      supabase.removeChannel(channelA);
     };
-  }, [chatRoomId, currentUser.user_id]);
+  }, [chatRoomId]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -123,27 +114,27 @@ export default function ChatModal({
 
     try {
       setSending(true);
-      
+      console.log('Sending message to room:', chatRoomId);
+
+      const messageToSend = {
+        room_id: chatRoomId,
+        sender_id: currentUser.user_id,
+        content: newMessage.trim(),
+      };
+
       const { data: insertedMessage, error: insertError } = await supabase
         .from('chat_messages')
-        .insert([
-          {
-            room_id: chatRoomId,
-            sender_id: currentUser.user_id,
-            content: newMessage.trim(),
-          },
-        ])
+        .insert([messageToSend])
         .select()
         .single();
 
-      if (insertError) throw insertError;
-
-      // Add message immediately to local state
-      if (insertedMessage) {
-        setMessages(prev => [...prev, insertedMessage]);
-        setNewMessage('');
-        scrollToBottom();
+      if (insertError) {
+        console.error('Error inserting message:', insertError);
+        throw insertError;
       }
+
+      console.log('Message sent successfully:', insertedMessage);
+      setNewMessage('');
       
     } catch (error) {
       console.error('Error sending message:', error);
