@@ -285,7 +285,7 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                         </div>
                         <div>
                           <p className="text-[var(--white)] font-medium">
-                            {application.projects?.creator?.full_name}
+                            {application.project?.creator?.full_name}
                           </p>
                           <p className="text-[var(--slate)] text-sm">Project Creator</p>
                         </div>
@@ -296,14 +296,14 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                           <ClockIcon className="w-4 h-4 mr-1" />
                           {new Date(application.created_at).toLocaleDateString()}
                         </div>
-                        {application.projects?.creator && (
+                        {application.project?.creator && (
                           <div className="flex items-center">
                             <ChatButton
                               currentUser={currentUser}
-                              otherUser={application.projects.creator}
+                              otherUser={application.project.creator}
                               projectId={application.project_id}
                               applicationId={application.id}
-                              projectTitle={application.project?.title || ''}
+                              projectTitle={application.project.title || ''}
                             />
                             {application.status === 'accepted' && (
                               <span className="ml-2 text-sm text-[var(--accent)]">
