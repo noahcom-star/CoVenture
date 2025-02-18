@@ -27,6 +27,37 @@ interface ChatRoom {
   };
 }
 
+interface RoomData {
+  id: string;
+  updated_at: string;
+  project: {
+    title: string;
+    creator: {
+      user_id: string;
+      full_name: string;
+      avatar_url: string | null;
+    };
+  };
+  application: {
+    applicant: {
+      user_id: string;
+      full_name: string;
+      avatar_url: string | null;
+    };
+  };
+  chat_messages: {
+    content: string;
+    created_at: string;
+    sender_id: string;
+  }[] | null;
+}
+
+interface ChatPartner {
+  user_id: string;
+  full_name: string;
+  avatar_url: string | null;
+}
+
 export default function ChatSection({ currentUser }: ChatSectionProps) {
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
@@ -49,17 +80,24 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
           ),
           chat_messages:chat_messages(
             content,
-            created_at
+            created_at,
+            sender_id
           )
         `)
+        .or(`project->creator->user_id.eq.${currentUser.user_id},application->applicant->user_id.eq.${currentUser.user_id}`)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
 
-      const processedRooms: ChatRoom[] = (rooms || []).map(room => {
+      const processedRooms: ChatRoom[] = (rooms as RoomData[] || []).map(room => {
         const isCreator = room.project.creator.user_id === currentUser.user_id;
-        const otherUser = isCreator ? room.application.applicant : room.project.creator;
-        const lastMessage = room.chat_messages?.[0];
+        const otherUser: ChatPartner = isCreator ? room.application.applicant : room.project.creator;
+        
+        const messages = room.chat_messages || [];
+        const sortedMessages = messages.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        const lastMessage = sortedMessages[0];
 
         return {
           id: room.id,
@@ -92,27 +130,35 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
         channelRef.current = null;
       }
 
-      const channel = supabase.channel('chat_updates', {
+      const channel = supabase.channel(`chats:${currentUser.user_id}`, {
         config: {
-          broadcast: { self: true },
+          broadcast: { self: false },
           presence: { key: currentUser.user_id },
         },
       });
 
       channel
         .on('postgres_changes', {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'chat_messages',
         }, () => {
-          console.log('Chat message changes detected, refreshing rooms...');
+          console.log('New message detected, refreshing rooms...');
+          fetchChatRooms();
+        })
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'chat_rooms',
+        }, () => {
+          console.log('Chat room updated, refreshing...');
           fetchChatRooms();
         })
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
-            console.log('Successfully subscribed to chat updates');
+            console.log('Successfully subscribed to chat updates for user:', currentUser.user_id);
           } else {
-            console.log('Subscription status:', status);
+            console.warn('Subscription status:', status);
           }
         });
 
@@ -120,6 +166,7 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
     } catch (error) {
       console.error('Error setting up real-time subscription:', error);
       toast.error('Failed to connect to chat updates');
+      setTimeout(setupRealtimeSubscription, 3000);
     }
   };
 

@@ -83,25 +83,30 @@ export default function ChatModal({
         channelRef.current = null;
       }
 
-      const channel = supabase.channel(`room:${chatRoomId}`, {
+      // Create a more specific channel name
+      const channel = supabase.channel(`chat:${chatRoomId}:${currentUser.user_id}`, {
         config: {
-          broadcast: { self: true },
+          broadcast: { self: false }, // Don't send messages to self
           presence: { key: currentUser.user_id },
         },
       });
 
       channel
         .on('postgres_changes', {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'chat_messages',
           filter: `room_id=eq.${chatRoomId}`,
         }, (payload) => {
-          console.log('Message change received:', payload);
+          console.log('New message received:', payload);
           
-          if (payload.eventType === 'INSERT') {
+          if (payload.new) {
             const newMessage = payload.new as ChatMessage;
             setMessages(prev => {
+              // Prevent duplicate messages
+              if (prev.some(msg => msg.id === newMessage.id)) {
+                return prev;
+              }
               // Add new message and sort by timestamp
               const updated = [...prev, newMessage].sort((a, b) => 
                 new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -111,11 +116,13 @@ export default function ChatModal({
             setTimeout(scrollToBottom, 100);
           }
         })
-        .subscribe((status) => {
+        .subscribe(async (status) => {
           if (status === 'SUBSCRIBED') {
-            console.log('Successfully subscribed to chat updates');
+            console.log('Successfully subscribed to chat room:', chatRoomId);
+            // Fetch messages again after subscription to ensure no messages were missed
+            await fetchMessages();
           } else {
-            console.log('Subscription status:', status);
+            console.warn('Subscription status:', status);
           }
         });
 
@@ -123,6 +130,8 @@ export default function ChatModal({
     } catch (error) {
       console.error('Error setting up real-time subscription:', error);
       toast.error('Failed to connect to chat');
+      // Retry subscription after a delay
+      setTimeout(setupRealtimeSubscription, 3000);
     }
   };
 
