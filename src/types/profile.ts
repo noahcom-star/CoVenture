@@ -40,22 +40,14 @@ export interface ProjectApplication {
   project_id: string;
   applicant_id: string;
   status: 'pending' | 'accepted' | 'rejected';
+  created_at: string;
   linkedin_url?: string;
   github_url?: string;
   portfolio_url?: string;
-  created_at: string;
-  updated_at: string;
-  projects?: {
-    id: string;
-    title: string;
-    description: string;
-    required_skills: string[];
-    team_size: number;
-    timeline: string;
-    creator_id: string;
-    creator?: UserProfile;
-  };
   profiles?: UserProfile;
+  project?: {
+    title: string;
+  };
 }
 
 export interface ProjectMember {
