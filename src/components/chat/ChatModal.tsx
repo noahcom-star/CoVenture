@@ -4,7 +4,6 @@ import { XMarkIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import { UserProfile } from '@/types/profile';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'react-hot-toast';
-import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface ChatModalProps {
@@ -12,6 +11,7 @@ interface ChatModalProps {
   otherUser: UserProfile;
   projectTitle: string;
   onClose: () => void;
+  currentUser: NonNullable<UserProfile>;
 }
 
 interface ChatMessage {
@@ -27,6 +27,7 @@ export default function ChatModal({
   otherUser,
   projectTitle,
   onClose,
+  currentUser,
 }: ChatModalProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -34,7 +35,6 @@ export default function ChatModal({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [retryCount, setRetryCount] = useState(0);
   const maxRetries = 3;
-  const currentUser = useCurrentUser();
 
   useEffect(() => {
     let subscription: RealtimeChannel | null = null;

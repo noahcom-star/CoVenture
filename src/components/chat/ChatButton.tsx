@@ -53,6 +53,7 @@ export default function ChatButton({
           otherUser={otherUser}
           projectTitle={projectTitle}
           onClose={handleClose}
+          currentUser={currentUser}
         />
       )}
     </>
