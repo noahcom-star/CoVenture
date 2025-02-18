@@ -79,16 +79,21 @@ export default function ChatModal({
   const setupRealtimeSubscription = async () => {
     try {
       if (channelRef.current) {
+        console.log('Unsubscribing from previous channel...');
         await channelRef.current.unsubscribe();
         channelRef.current = null;
       }
 
-      // Create a more specific channel name
-      const channel = supabase.channel(`chat:${chatRoomId}:${currentUser.user_id}`, {
+      console.log('Setting up new subscription for room:', chatRoomId);
+      const channel = supabase.channel(`room:${chatRoomId}`, {
         config: {
-          broadcast: { self: false }, // Don't send messages to self
-          presence: { key: currentUser.user_id },
+          broadcast: { self: true },
         },
+      });
+
+      // Add channel state change logging
+      channel.on('system', { event: '*' }, (payload) => {
+        console.log('Channel system event:', payload);
       });
 
       channel
@@ -98,39 +103,42 @@ export default function ChatModal({
           table: 'chat_messages',
           filter: `room_id=eq.${chatRoomId}`,
         }, (payload) => {
-          console.log('New message received:', payload);
+          console.log('New message payload:', payload);
           
           if (payload.new) {
             const newMessage = payload.new as ChatMessage;
+            console.log('Processing new message:', newMessage);
+            
             setMessages(prev => {
               // Prevent duplicate messages
               if (prev.some(msg => msg.id === newMessage.id)) {
+                console.log('Duplicate message detected, skipping...');
                 return prev;
               }
-              // Add new message and sort by timestamp
+              
+              console.log('Adding new message to state');
               const updated = [...prev, newMessage].sort((a, b) => 
                 new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
               );
               return updated;
             });
+            
             setTimeout(scrollToBottom, 100);
           }
         })
         .subscribe(async (status) => {
+          console.log(`Subscription status for room ${chatRoomId}:`, status);
+          
           if (status === 'SUBSCRIBED') {
-            console.log('Successfully subscribed to chat room:', chatRoomId);
-            // Fetch messages again after subscription to ensure no messages were missed
+            console.log('Fetching messages after subscription...');
             await fetchMessages();
-          } else {
-            console.warn('Subscription status:', status);
           }
         });
 
       channelRef.current = channel;
     } catch (error) {
-      console.error('Error setting up real-time subscription:', error);
+      console.error('Error in setupRealtimeSubscription:', error);
       toast.error('Failed to connect to chat');
-      // Retry subscription after a delay
       setTimeout(setupRealtimeSubscription, 3000);
     }
   };
@@ -144,6 +152,8 @@ export default function ChatModal({
       setNewMessage(''); // Clear input immediately
 
       const now = new Date().toISOString();
+      console.log('Sending message to room:', chatRoomId);
+      
       const { data, error } = await supabase
         .from('chat_messages')
         .insert([
@@ -151,13 +161,18 @@ export default function ChatModal({
             room_id: chatRoomId,
             sender_id: currentUser.user_id,
             content: messageToSend,
-            created_at: now // Use client timestamp for immediate feedback
+            created_at: now
           },
         ])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error inserting message:', error);
+        throw error;
+      }
+
+      console.log('Message sent successfully:', data);
 
       // Optimistically add message to state
       setMessages(prev => {
@@ -166,10 +181,13 @@ export default function ChatModal({
         );
         return updated;
       });
+      
       setTimeout(scrollToBottom, 100);
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error in sendMessage:', error);
       toast.error('Failed to send message');
+      // Restore the message in the input if it failed to send
+      setNewMessage(newMessage);
     }
   };
 

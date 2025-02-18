@@ -66,6 +66,7 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
 
   const fetchChatRooms = async () => {
     try {
+      console.log('Fetching chat rooms for user:', currentUser.user_id);
       const { data: rooms, error } = await supabase
         .from('chat_rooms')
         .select(`
@@ -87,9 +88,14 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
         .or(`project->creator->user_id.eq.${currentUser.user_id},application->applicant->user_id.eq.${currentUser.user_id}`)
         .order('updated_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching chat rooms:', error);
+        throw error;
+      }
 
-      const processedRooms: ChatRoom[] = (rooms as RoomData[] || []).map(room => {
+      console.log('Raw chat rooms data:', rooms);
+
+      const processedRooms: ChatRoom[] = (rooms as unknown as RoomData[] || []).map(room => {
         const isCreator = room.project.creator.user_id === currentUser.user_id;
         const otherUser: ChatPartner = isCreator ? room.application.applicant : room.project.creator;
         
@@ -99,7 +105,7 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
         );
         const lastMessage = sortedMessages[0];
 
-        return {
+        const processedRoom = {
           id: room.id,
           title: room.project.title,
           updated_at: room.updated_at,
@@ -113,12 +119,16 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
             created_at: lastMessage.created_at
           } : undefined
         };
+
+        console.log('Processed chat room:', processedRoom);
+        return processedRoom;
       });
 
+      console.log('Setting chat rooms:', processedRooms);
       setChatRooms(processedRooms);
       setIsLoading(false);
     } catch (error) {
-      console.error('Error fetching chat rooms:', error);
+      console.error('Error in fetchChatRooms:', error);
       toast.error('Failed to load chat rooms');
     }
   };
@@ -126,45 +136,49 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
   const setupRealtimeSubscription = async () => {
     try {
       if (channelRef.current) {
+        console.log('Unsubscribing from previous chat section channel...');
         await channelRef.current.unsubscribe();
         channelRef.current = null;
       }
 
-      const channel = supabase.channel(`chats:${currentUser.user_id}`, {
+      console.log('Setting up chat section subscription for user:', currentUser.user_id);
+      const channel = supabase.channel('chat_rooms', {
         config: {
-          broadcast: { self: false },
-          presence: { key: currentUser.user_id },
+          broadcast: { self: true },
         },
       });
 
+      // Add channel state change logging
+      channel.on('system', { event: '*' }, (payload) => {
+        console.log('Chat section channel system event:', payload);
+      });
+
+      // Listen for new messages
       channel
         .on('postgres_changes', {
           event: 'INSERT',
           schema: 'public',
-          table: 'chat_messages',
-        }, () => {
-          console.log('New message detected, refreshing rooms...');
+          table: 'chat_messages'
+        }, (payload) => {
+          console.log('New message in chat section:', payload);
           fetchChatRooms();
         })
+        // Listen for chat room updates
         .on('postgres_changes', {
           event: 'UPDATE',
           schema: 'public',
-          table: 'chat_rooms',
-        }, () => {
-          console.log('Chat room updated, refreshing...');
+          table: 'chat_rooms'
+        }, (payload) => {
+          console.log('Chat room updated:', payload);
           fetchChatRooms();
         })
         .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-            console.log('Successfully subscribed to chat updates for user:', currentUser.user_id);
-          } else {
-            console.warn('Subscription status:', status);
-          }
+          console.log('Chat section subscription status:', status);
         });
 
       channelRef.current = channel;
     } catch (error) {
-      console.error('Error setting up real-time subscription:', error);
+      console.error('Error in chat section setupRealtimeSubscription:', error);
       toast.error('Failed to connect to chat updates');
       setTimeout(setupRealtimeSubscription, 3000);
     }
