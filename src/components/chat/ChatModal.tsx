@@ -51,39 +51,45 @@ export default function ChatModal({
         async (payload) => {
           console.log('New message received:', payload);
           
-          // Fetch the complete message with sender info
-          const { data: newMessage, error } = await supabase
-            .from('chat_messages')
-            .select(`
-              *,
-              sender:profiles!chat_messages_sender_fkey (
-                user_id,
-                full_name,
-                avatar_url
-              )
-            `)
-            .eq('id', payload.new.id)
-            .single();
+          // Only fetch if the message is not from the current user
+          if (payload.new.sender_id !== currentUser.user_id) {
+            const { data: newMessage, error } = await supabase
+              .from('chat_messages')
+              .select(`
+                *,
+                sender:profiles!chat_messages_sender_fkey (
+                  user_id,
+                  full_name,
+                  avatar_url
+                )
+              `)
+              .eq('id', payload.new.id)
+              .single();
 
-          if (error) {
-            console.error('Error fetching new message:', error);
-            return;
-          }
+            if (error) {
+              console.error('Error fetching new message:', error);
+              return;
+            }
 
-          if (newMessage) {
-            setMessages(prev => [...prev, newMessage]);
-            scrollToBottom();
+            if (newMessage) {
+              setMessages(prev => [...prev, newMessage]);
+              scrollToBottom();
+            }
           }
         }
       )
       .subscribe((status) => {
         console.log('Subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to chat room:', chatRoomId);
+        }
       });
 
     return () => {
+      console.log('Unsubscribing from chat room:', chatRoomId);
       channel.unsubscribe();
     };
-  }, [chatRoomId]);
+  }, [chatRoomId, currentUser.user_id]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
