@@ -43,22 +43,5 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
   }
-});
-
-// Initialize realtime client
-supabase.realtime.setAuth(supabaseAnonKey);
-
-// Enable realtime subscriptions
-const channel = supabase.channel('any');
-channel.subscribe((status) => {
-  console.log('Base channel status:', status);
-});
-
-// Connect to realtime
-supabase.realtime.connect(); 
+}); 
