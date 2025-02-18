@@ -37,10 +37,16 @@ export default function ChatModal({
   useEffect(() => {
     fetchMessages();
     
-    // Set up real-time subscription with broadcast
-    const channelA = supabase.channel('chat_messages');
-    
-    channelA
+    // Set up real-time subscription
+    const channel = supabase.channel('any', {
+      config: {
+        broadcast: { self: true },
+        presence: { key: chatRoomId },
+      }
+    });
+
+    // Subscribe to chat messages for this room
+    channel
       .on(
         'postgres_changes',
         {
@@ -50,35 +56,37 @@ export default function ChatModal({
           filter: `room_id=eq.${chatRoomId}`
         },
         (payload) => {
-          console.log('New message received:', payload);
+          console.log('Real-time event received:', payload);
           
-          // Add the new message to state if it's not already there
           const newMessage: ChatMessage = payload.new as ChatMessage;
+          console.log('Adding new message to state:', newMessage);
           
           setMessages(prev => {
             // Don't add if message already exists
             if (prev.some(msg => msg.id === newMessage.id)) {
+              console.log('Message already exists in state');
               return prev;
             }
+            console.log('Adding message to state');
             return [...prev, newMessage];
           });
           scrollToBottom();
         }
       )
-      .subscribe((status, err) => {
+      .subscribe(async (status) => {
+        console.log(`Subscription status for room ${chatRoomId}:`, status);
+        
         if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to chat messages');
-        }
-        if (err) {
-          console.error('Subscription error:', err);
+          await channel.track({ user: currentUser.user_id, online_at: new Date().toISOString() });
+          console.log('Successfully subscribed and tracking presence');
         }
       });
 
     return () => {
-      console.log('Unsubscribing from chat messages');
-      supabase.removeChannel(channelA);
+      console.log('Cleaning up subscription for room:', chatRoomId);
+      channel.unsubscribe();
     };
-  }, [chatRoomId]);
+  }, [chatRoomId, currentUser.user_id]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -114,7 +122,7 @@ export default function ChatModal({
 
     try {
       setSending(true);
-      console.log('Sending message to room:', chatRoomId);
+      console.log('Attempting to send message to room:', chatRoomId);
 
       const messageToSend = {
         room_id: chatRoomId,
@@ -133,8 +141,14 @@ export default function ChatModal({
         throw insertError;
       }
 
-      console.log('Message sent successfully:', insertedMessage);
+      console.log('Message inserted successfully:', insertedMessage);
+      
+      // Clear input immediately
       setNewMessage('');
+      
+      // Add message to local state immediately
+      setMessages(prev => [...prev, insertedMessage]);
+      scrollToBottom();
       
     } catch (error) {
       console.error('Error sending message:', error);
