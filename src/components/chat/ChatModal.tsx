@@ -39,14 +39,14 @@ export default function ChatModal({
     
     // Set up real-time subscription
     const channel = supabase
-      .channel(`room:${chatRoomId}`)
+      .channel('chat_messages')
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'chat_messages',
-          filter: `room_id=eq.${chatRoomId}`,
+          filter: `room_id=eq.${chatRoomId}`
         },
         (payload) => {
           console.log('New message received:', payload);
@@ -60,25 +60,18 @@ export default function ChatModal({
             created_at: payload.new.created_at,
           };
           
-          // Only add if not already in messages
-          setMessages(prev => {
-            if (prev.some(msg => msg.id === newMessage.id)) {
-              return prev;
-            }
-            return [...prev, newMessage];
-          });
+          setMessages(prev => [...prev, newMessage]);
           scrollToBottom();
         }
       )
-      .subscribe((status) => {
+      .subscribe((status, err) => {
         console.log('Chat subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to chat room:', chatRoomId);
+        if (err) {
+          console.error('Subscription error:', err);
         }
       });
 
     return () => {
-      console.log('Unsubscribing from chat room:', chatRoomId);
       channel.unsubscribe();
     };
   }, [chatRoomId, currentUser.user_id]);
@@ -118,7 +111,7 @@ export default function ChatModal({
     try {
       setSending(true);
       
-      const { error: insertError } = await supabase
+      const { data: insertedMessage, error: insertError } = await supabase
         .from('chat_messages')
         .insert([
           {
@@ -126,12 +119,18 @@ export default function ChatModal({
             sender_id: currentUser.user_id,
             content: newMessage.trim(),
           },
-        ]);
+        ])
+        .select()
+        .single();
 
       if (insertError) throw insertError;
 
-      // Clear the input field
-      setNewMessage('');
+      // Update messages immediately for the sender
+      if (insertedMessage) {
+        setMessages(prev => [...prev, insertedMessage]);
+        setNewMessage('');
+        scrollToBottom();
+      }
       
     } catch (error) {
       console.error('Error sending message:', error);
