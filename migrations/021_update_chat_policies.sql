@@ -12,17 +12,18 @@ DROP POLICY IF EXISTS "chat_messages_insert" ON chat_messages;
 DROP TRIGGER IF EXISTS update_chat_room_timestamp ON chat_messages;
 DROP FUNCTION IF EXISTS update_chat_room_timestamp();
 
--- Add unique constraint to profiles.user_id if it doesn't exist
+-- First drop the existing foreign key constraint on chat_messages
+ALTER TABLE chat_messages
+DROP CONSTRAINT IF EXISTS chat_messages_sender_fkey;
+
+-- Now we can safely modify the profiles table
 ALTER TABLE profiles
-DROP CONSTRAINT IF EXISTS profiles_user_id_key;
+DROP CONSTRAINT IF EXISTS profiles_user_id_key CASCADE;
 
 ALTER TABLE profiles
 ADD CONSTRAINT profiles_user_id_key UNIQUE (user_id);
 
--- Add foreign key relationships
-ALTER TABLE chat_messages
-DROP CONSTRAINT IF EXISTS chat_messages_sender_fkey;
-
+-- Add the new foreign key relationship
 ALTER TABLE chat_messages
 ADD CONSTRAINT chat_messages_sender_fkey
 FOREIGN KEY (sender_id) REFERENCES auth.users(id)
