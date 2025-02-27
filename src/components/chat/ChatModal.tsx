@@ -4,14 +4,13 @@ import { XMarkIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import { UserProfile } from '@/types/profile';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'react-hot-toast';
-import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface ChatModalProps {
-  roomId: string;
-  otherUser: UserProfile;
-  projectTitle: string;
+  isOpen: boolean;
   onClose: () => void;
-  currentUser: NonNullable<UserProfile>;
+  chatRoomId: string;
+  currentUser: UserProfile;
+  otherUser: UserProfile;
 }
 
 interface ChatMessage {
@@ -23,11 +22,11 @@ interface ChatMessage {
 }
 
 export default function ChatModal({
-  roomId,
-  otherUser,
-  projectTitle,
+  isOpen,
   onClose,
+  chatRoomId,
   currentUser,
+  otherUser,
 }: ChatModalProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -37,15 +36,13 @@ export default function ChatModal({
   const maxRetries = 3;
 
   useEffect(() => {
-    let subscription: RealtimeChannel | null = null;
+    let subscription: any = null;
     let mounted = true;
     let retryTimeout: NodeJS.Timeout;
 
     const setupRealtimeSubscription = async () => {
-      if (!currentUser) return;
-
       try {
-        console.log(`Setting up subscription for room ${roomId}...`);
+        console.log(`Setting up subscription for room ${chatRoomId}...`);
         
         // Remove any existing subscription
         if (subscription) {
@@ -54,68 +51,91 @@ export default function ChatModal({
 
         // Subscribe to the chat_messages table for this room
         subscription = supabase
-          .channel(`room:${roomId}`)
+          .channel(`room:${chatRoomId}`)
           .on('postgres_changes', {
             event: 'INSERT',
             schema: 'public',
             table: 'chat_messages',
-            filter: `room_id=eq.${roomId}`,
+            filter: `room_id=eq.${chatRoomId}`,
           }, (payload) => {
             console.log('Received real-time message:', payload);
-            
             if (mounted) {
-              setMessages((prevMessages) => {
-                const newMessage = payload.new as ChatMessage;
-                // Check if message already exists
-                if (!prevMessages.some(msg => msg.id === newMessage.id)) {
-                  return [...prevMessages, newMessage];
+              setMessages(prev => {
+                // Check if message already exists to prevent duplicates
+                const exists = prev.some(msg => msg.id === payload.new.id);
+                if (!exists) {
+                  return [...prev, payload.new as ChatMessage];
                 }
-                return prevMessages;
+                return prev;
               });
+              scrollToBottom();
             }
           })
-          .subscribe();
+          .subscribe((status) => {
+            console.log(`Subscription status for room ${chatRoomId}:`, status);
+            
+            if (status === 'SUBSCRIBED') {
+              console.log('Successfully subscribed to room:', chatRoomId);
+              setRetryCount(0); // Reset retry count on successful subscription
+            } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+              console.error('Subscription error:', status);
+              handleSubscriptionError();
+            }
+          });
+
       } catch (error) {
         console.error('Error setting up subscription:', error);
-        if (mounted && retryCount < maxRetries) {
-          const nextRetry = Math.min(1000 * Math.pow(2, retryCount), 10000);
-          console.log(`Retrying in ${nextRetry}ms...`);
-          retryTimeout = setTimeout(() => {
-            setRetryCount(prev => prev + 1);
-            setupRealtimeSubscription();
-          }, nextRetry);
-        }
+        handleSubscriptionError();
+      }
+    };
+
+    const handleSubscriptionError = () => {
+      if (retryCount < maxRetries && mounted) {
+        console.log(`Retrying subscription... Attempt ${retryCount + 1}/${maxRetries}`);
+        setRetryCount(prev => prev + 1);
+        retryTimeout = setTimeout(setupRealtimeSubscription, 2000 * Math.pow(2, retryCount));
+      } else if (mounted) {
+        toast.error('Failed to connect to chat. Please try again later.');
       }
     };
 
     // Initial setup
+    fetchMessages();
     setupRealtimeSubscription();
-    if (currentUser) {
-      fetchMessages();
-    }
 
+    // Cleanup function
     return () => {
       mounted = false;
-      if (subscription) subscription.unsubscribe();
-      if (retryTimeout) clearTimeout(retryTimeout);
+      if (subscription) {
+        console.log('Cleaning up subscription...');
+        subscription.unsubscribe();
+      }
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
     };
-  }, [roomId, retryCount, currentUser]);
+  }, [chatRoomId, retryCount]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   const fetchMessages = async () => {
     try {
       setIsLoading(true);
-      console.log('Fetching messages for room:', roomId);
+      console.log('Fetching messages for room:', chatRoomId);
       
       const { data, error } = await supabase
         .from('chat_messages')
         .select('*')
-        .eq('room_id', roomId)
+        .eq('room_id', chatRoomId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
 
       console.log('Fetched messages:', data);
       setMessages(data || []);
+      scrollToBottom();
     } catch (error) {
       console.error('Error fetching messages:', error);
       toast.error('Failed to load messages');
@@ -124,11 +144,13 @@ export default function ChatModal({
     }
   };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !currentUser) return;
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newMessage.trim()) return;
 
     try {
-      console.log('Sending message to room:', roomId);
+      console.log('Sending message to room:', chatRoomId);
       
       const messageToSend = newMessage.trim();
       setNewMessage(''); // Clear input immediately for better UX
@@ -137,48 +159,24 @@ export default function ChatModal({
         .from('chat_messages')
         .insert([
           {
-            room_id: roomId,
+            room_id: chatRoomId,
             sender_id: currentUser.user_id,
             content: messageToSend,
           },
         ]);
 
       if (error) throw error;
-
-      // Message will be added to the UI through the real-time subscription
+      
+      console.log('Message sent successfully');
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
-      // Restore the message if sending failed
+      // Restore the message in case of error
       setNewMessage(newMessage);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    sendMessage();
-  };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  // Return loading state if currentUser is not yet available
-  if (!currentUser) {
-    return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div className="bg-[var(--navy-light)] rounded-lg shadow-xl w-full max-w-2xl mx-4 p-8 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent)]" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!roomId) return null;
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -238,7 +236,7 @@ export default function ChatModal({
         </div>
 
         {/* Message Input */}
-        <form onSubmit={handleSubmit} className="p-4 border-t border-[var(--accent)]/10">
+        <form onSubmit={sendMessage} className="p-4 border-t border-[var(--accent)]/10">
           <div className="flex space-x-2">
             <input
               type="text"
