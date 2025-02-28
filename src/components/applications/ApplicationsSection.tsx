@@ -12,6 +12,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { Tab } from '@headlessui/react';
 import ChatButton from '@/components/chat/ChatButton';
+import ProfileModal from '@/components/profile/ProfileModal';
 
 interface ApplicationsSectionProps {
   currentUser: UserProfile;
@@ -25,6 +26,7 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
   const [sentApplications, setSentApplications] = useState<ProjectApplication[]>([]);
   const [receivedApplications, setReceivedApplications] = useState<ProjectApplication[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     fetchApplications();
@@ -247,6 +249,14 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                         <p className="text-[var(--slate)] mt-2 text-base leading-relaxed">
                           {application.projects?.description}
                         </p>
+                        <div className="flex items-center gap-2 mt-2 text-sm text-[var(--slate)]">
+                          <ClockIcon className="w-4 h-4" />
+                          <span>Applied {new Date(application.created_at).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}</span>
+                        </div>
                       </div>
                       <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
                         application.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50' :
@@ -300,9 +310,20 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                     </div>
 
                     <div className="flex items-center justify-between pt-4 border-t border-[var(--navy-dark)]">
-                      <div className="flex items-center space-x-3">
+                      <button
+                        onClick={() => setSelectedProfile(application.projects?.creator || null)}
+                        className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+                      >
                         <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
-                          <UserCircleIcon className="w-5 h-5 text-[var(--accent)]" />
+                          {application.projects?.creator?.avatar_url ? (
+                            <img
+                              src={application.projects.creator.avatar_url}
+                              alt={application.projects.creator.full_name || ''}
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            <UserCircleIcon className="w-5 h-5 text-[var(--accent)]" />
+                          )}
                         </div>
                         <div>
                           <p className="text-[var(--white)] font-medium">
@@ -310,7 +331,7 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                           </p>
                           <p className="text-[var(--slate)] text-sm">Project Creator</p>
                         </div>
-                      </div>
+                      </button>
                       
                       <div className="flex items-center space-x-4">
                         <div className="flex items-center text-[var(--slate)] text-sm">
@@ -360,8 +381,16 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                           {application.projects?.title}
                         </h3>
                         <p className="text-[var(--slate)] mt-2 text-base leading-relaxed">
-                          Application from {application.profiles?.full_name}
+                          {application.projects?.description}
                         </p>
+                        <div className="flex items-center gap-2 mt-2 text-sm text-[var(--slate)]">
+                          <ClockIcon className="w-4 h-4" />
+                          <span>Applied {new Date(application.created_at).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}</span>
+                        </div>
                       </div>
                       <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
                         application.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/50' :
@@ -415,9 +444,20 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                     </div>
 
                     <div className="flex items-center justify-between pt-4 border-t border-[var(--navy-dark)]">
-                      <div className="flex items-center space-x-3">
+                      <button
+                        onClick={() => setSelectedProfile(application.profiles || null)}
+                        className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+                      >
                         <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
-                          <UserCircleIcon className="w-5 h-5 text-[var(--accent)]" />
+                          {application.profiles?.avatar_url ? (
+                            <img
+                              src={application.profiles.avatar_url}
+                              alt={application.profiles.full_name || ''}
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            <UserCircleIcon className="w-5 h-5 text-[var(--accent)]" />
+                          )}
                         </div>
                         <div>
                           <p className="text-[var(--white)] font-medium">
@@ -425,7 +465,7 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                           </p>
                           <p className="text-[var(--slate)] text-sm">Applicant</p>
                         </div>
-                      </div>
+                      </button>
 
                       <div className="flex items-center space-x-4">
                         {application.status === 'pending' && (
@@ -468,6 +508,15 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
           </Tab.Panel>
         </Tab.Panels>
       </Tab.Group>
+
+      {/* Profile Modal */}
+      {selectedProfile && (
+        <ProfileModal
+          isOpen={!!selectedProfile}
+          onClose={() => setSelectedProfile(null)}
+          profile={selectedProfile}
+        />
+      )}
     </div>
   );
 } 
