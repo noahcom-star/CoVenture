@@ -13,10 +13,16 @@ import ProjectSwipe from '@/components/projects/ProjectSwipe';
 import ProfileDropdown from '@/components/dashboard/ProfileDropdown';
 import ApplicationsSection from '@/components/applications/ApplicationsSection';
 import { toast } from 'react-hot-toast';
+import { FolderIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ');
 }
+
+const tabs = [
+  { name: 'Browse', icon: FolderIcon },
+  { name: 'Applications', icon: DocumentTextIcon },
+];
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -137,59 +143,26 @@ export default function DashboardPage() {
       <div className="py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Tab.Group>
-            <Tab.List className="flex space-x-4 bg-[var(--navy-light)]/50 backdrop-blur-lg p-2 rounded-xl mb-6">
-              <Tab
-                className={({ selected }) =>
-                  classNames(
-                    'w-full py-3 px-4 text-sm font-medium rounded-lg',
-                    'focus:outline-none focus:ring-2 ring-offset-2 ring-offset-[var(--navy-dark)] ring-[var(--accent)]/50',
-                    selected
-                      ? 'bg-[var(--accent)] text-[var(--navy-dark)]'
-                      : 'text-[var(--slate)] hover:text-[var(--white)] hover:bg-[var(--accent)]/10'
-                  )
-                }
-              >
-                Browse
-              </Tab>
-              <Tab
-                className={({ selected }) =>
-                  classNames(
-                    'w-full py-3 px-4 text-sm font-medium rounded-lg',
-                    'focus:outline-none focus:ring-2 ring-offset-2 ring-offset-[var(--navy-dark)] ring-[var(--accent)]/50',
-                    selected
-                      ? 'bg-[var(--accent)] text-[var(--navy-dark)]'
-                      : 'text-[var(--slate)] hover:text-[var(--white)] hover:bg-[var(--accent)]/10'
-                  )
-                }
-              >
-                Swipe
-              </Tab>
-              <Tab
-                className={({ selected }) =>
-                  classNames(
-                    'w-full py-3 px-4 text-sm font-medium rounded-lg',
-                    'focus:outline-none focus:ring-2 ring-offset-2 ring-offset-[var(--navy-dark)] ring-[var(--accent)]/50',
-                    selected
-                      ? 'bg-[var(--accent)] text-[var(--navy-dark)]'
-                      : 'text-[var(--slate)] hover:text-[var(--white)] hover:bg-[var(--accent)]/10'
-                  )
-                }
-              >
-                Applications
-              </Tab>
-              <Tab
-                className={({ selected }) =>
-                  classNames(
-                    'w-full py-3 px-4 text-sm font-medium rounded-lg',
-                    'focus:outline-none focus:ring-2 ring-offset-2 ring-offset-[var(--navy-dark)] ring-[var(--accent)]/50',
-                    selected
-                      ? 'bg-[var(--accent)] text-[var(--navy-dark)]'
-                      : 'text-[var(--slate)] hover:text-[var(--white)] hover:bg-[var(--accent)]/10'
-                  )
-                }
-              >
-                Chat
-              </Tab>
+            <Tab.List className="flex space-x-1 rounded-xl bg-[var(--navy-light)]/50 backdrop-blur-lg p-1">
+              {tabs.map((tab) => (
+                <Tab
+                  key={tab.name}
+                  className={({ selected }) =>
+                    classNames(
+                      'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
+                      'ring-white/60 ring-offset-2 ring-offset-[var(--navy-dark)] focus:outline-none focus:ring-2',
+                      selected
+                        ? 'bg-[var(--accent)] text-[var(--navy-dark)]'
+                        : 'text-[var(--slate)] hover:bg-[var(--navy-dark)] hover:text-[var(--white)]'
+                    )
+                  }
+                >
+                  <div className="flex items-center justify-center space-x-2">
+                    <tab.icon className="w-5 h-5" />
+                    <span>{tab.name}</span>
+                  </div>
+                </Tab>
+              ))}
             </Tab.List>
 
             <Tab.Panels>
@@ -197,13 +170,7 @@ export default function DashboardPage() {
                 <Projects currentUser={profile} />
               </Tab.Panel>
               <Tab.Panel>
-                <ProjectSwipe currentUser={profile} />
-              </Tab.Panel>
-              <Tab.Panel>
                 <ApplicationsSection currentUser={profile} />
-              </Tab.Panel>
-              <Tab.Panel>
-                <ChatSection currentUser={profile} />
               </Tab.Panel>
             </Tab.Panels>
           </Tab.Group>
