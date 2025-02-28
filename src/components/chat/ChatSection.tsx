@@ -18,10 +18,12 @@ interface ChatRoom {
   created_at: string;
   updated_at: string;
   project: {
+    id: string;
     title: string;
     creator: UserProfile;
   };
   application: {
+    id: string;
     applicant: UserProfile;
   };
   last_message?: {
@@ -29,6 +31,35 @@ interface ChatRoom {
     created_at: string;
     sender_id: string;
   };
+}
+
+interface RawChatRoom {
+  id: string;
+  project_id: string;
+  application_id: string;
+  created_at: string;
+  updated_at: string;
+  project: {
+    id: string;
+    title: string;
+    creator: UserProfile;
+  };
+  application: {
+    id: string;
+    applicant: UserProfile;
+  };
+  messages?: {
+    content: string;
+    created_at: string;
+    sender_id: string;
+  }[];
+}
+
+interface ChatMessage {
+  room_id: string;
+  content: string;
+  created_at: string;
+  sender_id: string;
 }
 
 export default function ChatSection({ currentUser }: ChatSectionProps) {
@@ -79,26 +110,30 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
   const fetchChatRooms = async () => {
     try {
       setLoading(true);
-      const { data: rooms, error } = await supabase
+      
+      // Get chat rooms with all related data in a single query
+      const { data: rawRooms, error } = await supabase
         .from('chat_rooms')
         .select(`
           *,
           project:projects!inner (
+            id,
             title,
-            creator:profiles!projects_creator_id_fkey (
+            creator:profiles!projects_creator_id_fkey!inner (
               user_id,
               full_name,
               avatar_url
             )
           ),
           application:project_applications!inner (
-            applicant:profiles!project_applications_applicant_id_fkey (
+            id,
+            applicant:profiles!project_applications_applicant_id_fkey!inner (
               user_id,
               full_name,
               avatar_url
             )
           ),
-          last_message:chat_messages (
+          messages:chat_messages (
             content,
             created_at,
             sender_id
@@ -107,12 +142,34 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
         .or(`project->creator->user_id.eq.${currentUser.user_id},application->applicant->user_id.eq.${currentUser.user_id}`)
         .order('updated_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching chat rooms:', error);
+        throw error;
+      }
 
-      console.log('Fetched chat rooms:', rooms);
-      setChatRooms(rooms || []);
+      // Transform the data into the expected format
+      const transformedRooms: ChatRoom[] = (rawRooms as RawChatRoom[] || []).map(room => ({
+        id: room.id,
+        project_id: room.project_id,
+        application_id: room.application_id,
+        created_at: room.created_at,
+        updated_at: room.updated_at,
+        project: {
+          id: room.project.id,
+          title: room.project.title,
+          creator: room.project.creator
+        },
+        application: {
+          id: room.application.id,
+          applicant: room.application.applicant
+        },
+        last_message: room.messages?.[0]
+      }));
+
+      console.log('Transformed chat rooms:', transformedRooms);
+      setChatRooms(transformedRooms);
     } catch (error) {
-      console.error('Error fetching chat rooms:', error);
+      console.error('Error in fetchChatRooms:', error);
       toast.error('Failed to load chat rooms');
     } finally {
       setLoading(false);
