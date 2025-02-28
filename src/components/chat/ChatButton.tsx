@@ -62,9 +62,10 @@ export default function ChatButton({ currentUser, otherUser, projectId, applicat
     <>
       <button
         onClick={handleOpenChat}
-        className="p-2 bg-[var(--accent)]/10 text-[var(--accent)] rounded-lg hover:bg-[var(--accent)]/20 transition-colors"
+        className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-[var(--navy-dark)] rounded-lg hover:opacity-90 transition-all transform hover:scale-105 font-medium shadow-lg hover:shadow-xl"
       >
         <ChatBubbleLeftRightIcon className="w-5 h-5" />
+        <span>Chat Now</span>
       </button>
 
       {isModalOpen && chatRoomId && (
