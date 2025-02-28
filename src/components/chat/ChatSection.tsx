@@ -83,7 +83,7 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
         .from('chat_rooms')
         .select(`
           *,
-          project:projects (
+          project:projects!inner (
             title,
             creator:profiles!projects_creator_id_fkey (
               user_id,
@@ -91,7 +91,7 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
               avatar_url
             )
           ),
-          application:project_applications (
+          application:project_applications!inner (
             applicant:profiles!project_applications_applicant_id_fkey (
               user_id,
               full_name,
@@ -104,18 +104,13 @@ export default function ChatSection({ currentUser }: ChatSectionProps) {
             sender_id
           )
         `)
+        .or(`project->creator->user_id.eq.${currentUser.user_id},application->applicant->user_id.eq.${currentUser.user_id}`)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;
 
-      // Filter rooms where the current user is either the project creator or applicant
-      const filteredRooms = rooms?.filter(room => 
-        room.project?.creator?.user_id === currentUser.user_id || 
-        room.application?.applicant?.user_id === currentUser.user_id
-      ) || [];
-
-      console.log('Fetched chat rooms:', filteredRooms);
-      setChatRooms(filteredRooms);
+      console.log('Fetched chat rooms:', rooms);
+      setChatRooms(rooms || []);
     } catch (error) {
       console.error('Error fetching chat rooms:', error);
       toast.error('Failed to load chat rooms');

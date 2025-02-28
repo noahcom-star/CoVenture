@@ -25,7 +25,16 @@ export default function ChatButton({ currentUser, otherUser, projectId, applicat
       // First try to find an existing chat room
       const { data: existingRoom, error: findError } = await supabase
         .from('chat_rooms')
-        .select('id')
+        .select(`
+          id,
+          project:projects!inner (
+            title,
+            creator:profiles!projects_creator_id_fkey (*)
+          ),
+          application:project_applications!inner (
+            applicant:profiles!project_applications_applicant_id_fkey (*)
+          )
+        `)
         .eq('project_id', projectId)
         .eq('application_id', applicationId)
         .single();
@@ -44,9 +53,19 @@ export default function ChatButton({ currentUser, otherUser, projectId, applicat
             {
               project_id: projectId,
               application_id: applicationId,
+              updated_at: new Date().toISOString()
             },
           ])
-          .select()
+          .select(`
+            id,
+            project:projects!inner (
+              title,
+              creator:profiles!projects_creator_id_fkey (*)
+            ),
+            application:project_applications!inner (
+              applicant:profiles!project_applications_applicant_id_fkey (*)
+            )
+          `)
           .single();
 
         if (createError) throw createError;
@@ -56,6 +75,7 @@ export default function ChatButton({ currentUser, otherUser, projectId, applicat
       setIsModalOpen(true);
     } catch (error) {
       console.error('Error handling chat:', error);
+      toast.error('Failed to open chat');
     }
   };
 
