@@ -594,8 +594,8 @@ function CreateProjectModal({ onClose, onCreate }: CreateProjectModalProps) {
       setError('Required skills are required');
       return;
     }
-    if (formData.team_size < 2) {
-      setError('Team size must be at least 2');
+    if (formData.team_size < 1) {
+      setError('Team size must be at least 1');
       return;
     }
     if (!formData.timeline.trim()) {
@@ -677,10 +677,10 @@ function CreateProjectModal({ onClose, onCreate }: CreateProjectModalProps) {
             </label>
             <input
               type="number"
-              min={2}
+              min={1}
               max={10}
               value={formData.team_size}
-              onChange={(e) => setFormData(prev => ({ ...prev, team_size: parseInt(e.target.value) || 2 }))}
+              onChange={(e) => setFormData(prev => ({ ...prev, team_size: parseInt(e.target.value) || 1 }))}
               className="w-full px-4 py-2 bg-[var(--navy-light)] text-[var(--white)] rounded-lg focus:outline-none focus:ring-2 ring-[var(--accent)]/50"
             />
           </div>
