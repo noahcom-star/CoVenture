@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChatBubbleLeftRightIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ChatBubbleLeftRightIcon, XMarkIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { UserProfile } from '@/types/profile';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'react-hot-toast';
@@ -62,10 +62,19 @@ export default function ChatButton({ currentUser, otherUser, projectId, applicat
     <>
       <button
         onClick={handleOpenChat}
-        className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-[var(--navy-dark)] rounded-lg hover:opacity-90 transition-all transform hover:scale-105 font-medium shadow-lg hover:shadow-xl"
+        className="flex items-center gap-2 px-4 py-2 bg-[var(--navy-dark)] text-[var(--white)] rounded-lg hover:bg-[var(--navy-dark)]/80 transition-all transform hover:scale-105 font-medium shadow-lg hover:shadow-xl border border-[var(--accent)]/20"
       >
         <ChatBubbleLeftRightIcon className="w-5 h-5" />
         <span>Chat Now</span>
+        <div className="relative group/tooltip">
+          <InformationCircleIcon className="w-5 h-5 text-[var(--accent)]" />
+          <div className="absolute bottom-full right-0 mb-2 w-max opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none">
+            <div className="bg-[var(--navy-dark)] text-[var(--white)] text-sm py-1 px-2 rounded shadow-lg whitespace-nowrap border border-[var(--accent)]/20">
+              Discuss project details
+            </div>
+            <div className="absolute top-full right-2 -mt-1 border-4 border-transparent border-t-[var(--navy-dark)]" />
+          </div>
+        </div>
       </button>
 
       {isModalOpen && chatRoomId && (

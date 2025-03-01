@@ -3,12 +3,12 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowDownIcon, 
-  SparklesIcon, 
   UserGroupIcon, 
   RocketLaunchIcon,
   ChatBubbleLeftRightIcon,
   LightBulbIcon,
-  AcademicCapIcon
+  AcademicCapIcon,
+  SparklesIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
@@ -17,7 +17,7 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative min-h-screen hero-grid overflow-hidden">
+      <section className="relative min-h-[80vh] hero-grid overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--navy-dark)] to-[var(--navy-dark)] pointer-events-none" />
         
         <div className="container mx-auto px-4 pt-32 pb-24 relative z-10">
@@ -31,23 +31,17 @@ export default function Home() {
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               transition={{ duration: 0.5 }}
-              className="inline-block"
+              className="mb-8"
             >
-              <span className="px-4 py-1 rounded-full text-[var(--accent)] border border-[var(--accent)] text-sm mb-6 inline-block">
+              <h1 className="text-6xl md:text-8xl font-bold text-gradient mb-4">
                 CoVenture
-              </span>
+              </h1>
+              <p className="text-2xl md:text-3xl text-[var(--white)] font-light">
+                Where Teen Innovators Connect & Build
+              </p>
             </motion.div>
-            
-            <div className="space-y-4">
-              <h1 className="text-5xl md:text-7xl font-bold text-[var(--white)]">
-                Platform for
-              </h1>
-              <h1 className="text-5xl md:text-7xl font-bold text-gradient">
-                Teen Innovators
-              </h1>
-            </div>
 
-            <div className="h-20 mt-6 mb-8">
+            <div className="h-20 mb-8">
               <motion.p
                 key={Math.floor(Date.now() / 3000) % 5}
                 initial={{ opacity: 1 }}
@@ -57,95 +51,298 @@ export default function Home() {
               >
                 <TypewriterText
                   phrases={[
-                    "Where Ideas Become Reality",
-                    "Connect. Create. Change the World.",
-                    "Building Tomorrow's Solutions Today",
-                    "Your Innovation Journey Starts Here",
-                    "Empowering Young Entrepreneurs"
+                    "Teams With More Than One Founder Outperform Solo Founders by 163%",
+                    "Top Business Schools Admit Applicants With Startups/Independent Projects 5x More Than Those With Only Strong Grades",
+                    "Connect. Collaborate. Create.",
+                    "Turn Ideas into Reality Together",
+                    "Join the Next Generation of Builders",
+                    "Built for Teens, By Teens"
                   ]}
                 />
               </motion.p>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
               <Link href="/auth">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="px-8 py-3 rounded-lg bg-[var(--accent)] text-[var(--navy-dark)] font-semibold hover:opacity-90 transition-all"
+                  className="btn-gradient"
                 >
                   Get Started
                 </motion.button>
               </Link>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="px-8 py-3 rounded-lg border border-[var(--accent)] text-[var(--accent)] font-semibold hover:bg-[var(--accent)]/10 transition-all"
-              >
-                Learn More
-              </motion.button>
+              <Link href="#how-it-works">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="btn-outline"
+                >
+                  Learn More
+                </motion.button>
+              </Link>
             </div>
-          </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
-            className="absolute bottom-12 left-1/2 -translate-x-1/2 animate-bounce"
-          >
-            <ArrowDownIcon className="w-6 h-6 text-[var(--accent)]" />
+            <div className="w-screen relative left-1/2 right-1/2 -mx-[50vw] overflow-hidden">
+              <div className="max-w-[200vw] mx-auto">
+                <motion.div
+                  className="flex gap-6 py-4 px-8"
+                  animate={{
+                    x: [0, -1920],
+                  }}
+                  transition={{
+                    x: {
+                      duration: 40,
+                      repeat: Infinity,
+                      ease: "linear",
+                      repeatType: "loop"
+                    }
+                  }}
+                >
+                  {[
+                    {
+                      title: "AI-Powered Study Assistant",
+                      description: "Helping students learn more effectively"
+                    },
+                    {
+                      title: "Eco-Friendly Delivery Network",
+                      description: "Sustainable last-mile delivery solutions"
+                    },
+                    {
+                      title: "Mental Health Platform",
+                      description: "Connecting teens with peer support"
+                    },
+                    {
+                      title: "Local Business Marketplace",
+                      description: "Supporting youth entrepreneurs"
+                    },
+                    {
+                      title: "Social Impact Gaming",
+                      description: "Games that make a difference"
+                    },
+                    {
+                      title: "Educational Content Platform",
+                      description: "Peer-to-peer learning network"
+                    }
+                  ].map((project, i) => (
+                    <Link href="/auth" key={i}>
+                      <motion.div
+                        className="flex-shrink-0 w-[300px] h-[160px] glass-card p-6 rounded-xl relative overflow-hidden group/card cursor-pointer"
+                        whileHover={{ scale: 1.02 }}
+                      >
+                        <div className="absolute inset-0 bg-gradient opacity-0 group-hover/card:opacity-10 transition-opacity" />
+                        <h3 className="text-xl font-semibold text-[var(--white)] mb-2">{project.title}</h3>
+                        <p className="text-[var(--slate)]">{project.description}</p>
+                        <div className="mt-4 flex items-center gap-2 text-[var(--accent)] opacity-0 group-hover/card:opacity-100 transition-opacity">
+                          <span className="text-sm font-medium">Sign up to learn more</span>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                          </svg>
+                        </div>
+                      </motion.div>
+                    </Link>
+                  ))}
+                  {/* Duplicate the items to create a seamless loop */}
+                  {[
+                    {
+                      title: "AI-Powered Study Assistant",
+                      description: "Helping students learn more effectively"
+                    },
+                    {
+                      title: "Eco-Friendly Delivery Network",
+                      description: "Sustainable last-mile delivery solutions"
+                    },
+                    {
+                      title: "Mental Health Platform",
+                      description: "Connecting teens with peer support"
+                    },
+                    {
+                      title: "Local Business Marketplace",
+                      description: "Supporting youth entrepreneurs"
+                    },
+                    {
+                      title: "Social Impact Gaming",
+                      description: "Games that make a difference"
+                    },
+                    {
+                      title: "Educational Content Platform",
+                      description: "Peer-to-peer learning network"
+                    }
+                  ].map((project, i) => (
+                    <Link href="/auth" key={`duplicate-${i}`}>
+                      <motion.div
+                        className="flex-shrink-0 w-[300px] h-[160px] glass-card p-6 rounded-xl relative overflow-hidden group/card cursor-pointer"
+                        whileHover={{ scale: 1.02 }}
+                      >
+                        <div className="absolute inset-0 bg-gradient opacity-0 group-hover/card:opacity-10 transition-opacity" />
+                        <h3 className="text-xl font-semibold text-[var(--white)] mb-2">{project.title}</h3>
+                        <p className="text-[var(--slate)]">{project.description}</p>
+                        <div className="mt-4 flex items-center gap-2 text-[var(--accent)] opacity-0 group-hover/card:opacity-100 transition-opacity">
+                          <span className="text-sm font-medium">Sign up to learn more</span>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                          </svg>
+                        </div>
+                      </motion.div>
+                    </Link>
+                  ))}
+                </motion.div>
+              </div>
+              
+              {/* Add gradient masks for smooth fade effect */}
+              <div className="absolute top-0 left-0 w-32 h-full bg-gradient-to-r from-[var(--navy-dark)] to-transparent pointer-events-none" />
+              <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-[var(--navy-dark)] to-transparent pointer-events-none" />
+            </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Value Proposition Section */}
       <section className="py-24 bg-[var(--navy-dark)]">
         <div className="container mx-auto px-4">
-          <div className="max-w-6xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-4xl md:text-5xl font-bold mb-6 text-[var(--white)]">
-                Why Join CoVenture?
-              </h2>
-              <p className="text-xl text-[var(--slate)] max-w-2xl mx-auto">
-                Your launchpad for turning innovative ideas into reality with the perfect team.
-              </p>
-            </motion.div>
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-3xl md:text-4xl font-bold text-[var(--white)] mb-8">
+              Building something amazing is better with the right team
+            </h2>
+            <p className="text-xl text-[var(--slate)] mb-12">
+              That's why we created a space for teen innovators to connect.
+            </p>
 
             <div className="grid md:grid-cols-3 gap-8">
+              <div className="glass-card p-6 rounded-xl text-center">
+                <h3 className="text-xl font-semibold text-gradient mb-4">Find Your Team</h3>
+                <p className="text-[var(--slate)]">
+                  Whether you're looking for co-founders, collaborators, or just like-minded peers.
+                </p>
+              </div>
+
+              <div className="glass-card p-6 rounded-xl text-center">
+                <h3 className="text-xl font-semibold text-gradient mb-4">Share Your Vision</h3>
+                <p className="text-[var(--slate)]">
+                  Have an idea or looking to join one? This is where innovation begins.
+                </p>
+              </div>
+
+              <div className="glass-card p-6 rounded-xl text-center">
+                <h3 className="text-xl font-semibold text-gradient mb-4">Build Together</h3>
+                <p className="text-[var(--slate)]">
+                  No pressure, no strings attached. Just pure collaboration and growth.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Why Work in Teams Section */}
+      <section className="py-24 bg-gradient-to-b from-[var(--navy-dark)] to-[var(--navy-light)]">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-3xl md:text-4xl font-bold text-[var(--white)] mb-4">
+              Why Work in Teams?
+            </h2>
+            <p className="text-xl text-[var(--slate)] mb-12">
+              The data speaks for itself - teams consistently outperform solo founders
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-8">
+              <a 
+                href="https://10years.firstround.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group"
+              >
+                <div className="glass-card p-8 rounded-xl text-center h-full transition-all duration-300 hover:transform hover:scale-[1.02] relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
+                  <h3 className="text-2xl font-bold text-[var(--white)] mb-4">163%</h3>
+                  <p className="text-[var(--slate)] text-lg mb-6">
+                    Teams with multiple founders outperform solo founders by 163%
+                  </p>
+                  <span className="text-[var(--accent)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
+                    View Research
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </span>
+                  <div className="text-[var(--slate)] text-sm mt-4">
+                    Source: First Round's 10-Year Project
+                  </div>
+                </div>
+              </a>
+
+              <a 
+                href="https://alitamaseb.medium.com/land-of-the-super-founders-a-data-driven-approach-to-uncover-the-secrets-of-billion-dollar-a69ebe3f0f45"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group"
+              >
+                <div className="glass-card p-8 rounded-xl text-center h-full transition-all duration-300 hover:transform hover:scale-[1.02] relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
+                  <h3 className="text-2xl font-bold text-[var(--white)] mb-4">2x</h3>
+                  <p className="text-[var(--slate)] text-lg mb-6">
+                    The odds of building a billion-dollar startup nearly double with 2-3 founders
+                  </p>
+                  <span className="text-[var(--accent)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-2">
+                    View Research
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </span>
+                  <div className="text-[var(--slate)] text-sm mt-4">
+                    Source: Ali Tamaseb's Study of 195 Unicorns
+                  </div>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How it Works Section */}
+      <section id="how-it-works" className="py-24 bg-gradient-to-b from-[var(--navy-dark)] to-[var(--navy-light)]">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl font-bold text-[var(--white)] mb-12 text-center">
+              How does it work?
+            </h2>
+
+            <div className="space-y-12">
               {[
                 {
-                  icon: UserGroupIcon,
-                  title: "Connect with Co-Founders",
-                  description: "Match with like-minded teen entrepreneurs who complement your skills and share your vision."
+                  step: 1,
+                  title: "Create a profile",
+                  description: "Tell us about yourself, your skills, and what you're looking for in a co-founder."
                 },
                 {
-                  icon: SparklesIcon,
-                  title: "Build Your Startup",
-                  description: "Get expert guidance and resources to transform your innovative ideas into viable projects."
+                  step: 2,
+                  title: "Browse matches",
+                  description: "Our matching engine shows you profiles that fit your preferences."
                 },
                 {
-                  icon: RocketLaunchIcon,
-                  title: "Launch & Grow",
-                  description: "Access the tools, mentorship, and community support needed to bring your projects to life."
+                  step: 3,
+                  title: "Connect",
+                  description: "If a profile piques your interest, invite them to connect."
+                },
+                {
+                  step: 4,
+                  title: "Start building",
+                  description: "When they accept your invite, start a conversation and explore possibilities together."
                 }
-              ].map((feature, index) => (
+              ].map((item) => (
                 <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.2 }}
+                  key={item.step}
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
-                  className="glass-card p-8 rounded-xl"
+                  className="flex items-start gap-6"
                 >
-                  <feature.icon className="w-12 h-12 text-[var(--accent)] mb-6" />
-                  <h3 className="text-xl font-semibold mb-4 text-[var(--white)]">{feature.title}</h3>
-                  <p className="text-[var(--slate)]">{feature.description}</p>
+                  <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient flex items-center justify-center">
+                    <span className="text-[var(--white)] font-bold">{item.step}</span>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-[var(--white)] mb-2">{item.title}</h3>
+                    <p className="text-[var(--slate)]">{item.description}</p>
+                  </div>
                 </motion.div>
               ))}
             </div>
@@ -153,198 +350,51 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Spotlight Section */}
-      <section className="py-24 bg-gradient-to-b from-[var(--navy-dark)] to-[var(--navy-light)]">
-        <div className="container mx-auto px-4">
-          <div className="max-w-6xl mx-auto">
-            <div className="grid md:grid-cols-2 gap-12 items-center">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6 }}
-                viewport={{ once: true }}
-              >
-                <h2 className="text-4xl font-bold mb-6 text-[var(--white)]">
-                  Built For Teens,<br />
-                  <span className="text-[var(--accent)]">By Teen..?</span>
-                </h2>
-                <p className="text-lg text-[var(--slate)] mb-8">
-                  We understand the unique challenges teen entrepreneurs face. That's why we've created a platform that provides the perfect environment for innovation, collaboration, and growth.
-                </p>
-                <div className="space-y-4">
-                  {[
-                    {
-                      icon: ChatBubbleLeftRightIcon,
-                      title: "Safe & Supportive Community",
-                      description: "Connect with peers who share your entrepreneurial spirit"
-                    },
-                    {
-                      icon: LightBulbIcon,
-                      title: "Innovation-First Approach",
-                      description: "Turn your creative ideas into viable projects"
-                    },
-                    {
-                      icon: AcademicCapIcon,
-                      title: "Learn As You Build",
-                      description: "Gain real-world experience while creating your startup"
-                    }
-                  ].map((item, index) => (
-                    <div key={index} className="flex items-start space-x-4">
-                      <item.icon className="w-6 h-6 text-[var(--accent)]" />
-                      <div>
-                        <h3 className="text-[var(--white)] font-semibold mb-1">{item.title}</h3>
-                        <p className="text-[var(--slate)]">{item.description}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6 }}
-                viewport={{ once: true }}
-                className="relative"
-              >
-                <div className="aspect-square rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent)]/50 p-1">
-                  <div className="w-full h-full rounded-xl bg-[var(--navy-dark)] p-6">
-                    <div className="flex flex-col items-center justify-center h-full space-y-8 py-20">
-                      <p className="text-[var(--slate)] text-xl">Made by a teen who thought...</p>
-                      
-                      <h2 className="text-[var(--white)] text-3xl font-semibold text-center max-w-2xl">
-                        "Why isn't there a place for us to build cool stuff together?"
-                      </h2>
-                      
-                      <p className="text-[var(--accent)] text-xl">So here we are! 🚀</p>
-                      
-                      <div className="flex justify-center mt-8">
-                        <div className="w-2 h-2 bg-[var(--accent)] rounded-full animate-pulse"></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Community Section - Replacing Success Stories */}
+      {/* FAQ Section */}
       <section className="py-24 bg-[var(--navy-dark)]">
         <div className="container mx-auto px-4">
-          <div className="max-w-6xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-4xl md:text-5xl font-bold mb-6 text-[var(--white)]">
-                Join Our Community
-              </h2>
-              <p className="text-xl text-[var(--slate)] max-w-2xl mx-auto">
-                Be part of the next generation of innovators and entrepreneurs.
-              </p>
-            </motion.div>
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl font-bold text-[var(--white)] mb-12 text-center">
+              Frequently Asked Questions
+            </h2>
 
-            <div className="grid md:grid-cols-3 gap-8">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                viewport={{ once: true }}
-                className="glass-card p-8 rounded-xl text-center"
-              >
-                <div className="w-16 h-16 bg-[var(--accent)]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <UserGroupIcon className="w-8 h-8 text-[var(--accent)]" />
+            <div className="space-y-8">
+              {[
+                {
+                  question: "Who is this for?",
+                  answer: "Anyone who is looking for a co-founder. You can have an idea in mind or just be exploring. You can be already working full-time on a startup or just interested in doing one in the future."
+                },
+                {
+                  question: "Does CoVenture take equity in return for using this?",
+                  answer: "No, co-founder matching is a completely free product."
+                },
+                {
+                  question: "I'm not sure if I want to start a startup yet, can I use this to just meet people?",
+                  answer: "Absolutely, co-founder matching is a great way to meet other teen entrepreneurs interested in startups."
+                },
+                {
+                  question: "Will my profile be public?",
+                  answer: "No, your profile is not public to the internet. Your profile is visible only to other teens who have been approved for co-founder matching."
+                }
+              ].map((item, index) => (
+                <div key={index} className="glass-card p-6 rounded-xl">
+                  <h3 className="text-xl font-semibold text-[var(--white)] mb-3">{item.question}</h3>
+                  <p className="text-[var(--slate)]">{item.answer}</p>
                 </div>
-                <h3 className="text-xl font-semibold mb-4 text-[var(--white)]">Find Your Team</h3>
-                <p className="text-[var(--slate)]">
-                  Connect with other teen entrepreneurs who share your passion and complement your skills.
-                </p>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                viewport={{ once: true }}
-                className="glass-card p-8 rounded-xl text-center"
-              >
-                <div className="w-16 h-16 bg-[var(--accent)]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <SparklesIcon className="w-8 h-8 text-[var(--accent)]" />
-                </div>
-                <h3 className="text-xl font-semibold mb-4 text-[var(--white)]">Share Ideas</h3>
-                <p className="text-[var(--slate)]">
-                  Pitch your innovative ideas and get feedback from like-minded peers.
-                </p>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.4 }}
-                viewport={{ once: true }}
-                className="glass-card p-8 rounded-xl text-center"
-              >
-                <div className="w-16 h-16 bg-[var(--accent)]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <RocketLaunchIcon className="w-8 h-8 text-[var(--accent)]" />
-                </div>
-                <h3 className="text-xl font-semibold mb-4 text-[var(--white)]">Build Together</h3>
-                <p className="text-[var(--slate)]">
-                  Turn your ideas into reality with collaborative tools and resources designed for teens.
-                </p>
-              </motion.div>
+              ))}
             </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
-              viewport={{ once: true }}
-              className="text-center mt-12"
-            >
+            <div className="mt-12 text-center">
               <Link href="/auth">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="px-8 py-3 rounded-lg bg-[var(--accent)] text-[var(--navy-dark)] font-semibold hover:opacity-90 transition-all"
+                  className="btn-gradient"
                 >
-                  Join Now
+                  Sign up now
                 </motion.button>
               </Link>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-24 bg-gradient-to-b from-[var(--navy-dark)] to-[var(--navy-light)]">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-            >
-              <h2 className="text-4xl md:text-5xl font-bold mb-6 text-[var(--white)]">
-                Ready to Start Your Journey?
-              </h2>
-              <p className="text-xl text-[var(--slate)] mb-12 max-w-2xl mx-auto">
-                Join a community of ambitious teen entrepreneurs and turn your ideas into reality.
-              </p>
-              <Link href="/auth">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="px-8 py-4 rounded-lg bg-[var(--accent)] text-[var(--navy-dark)] font-semibold text-lg hover:opacity-90 transition-all"
-                >
-                  Get Started Today
-                </motion.button>
-              </Link>
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>
@@ -394,7 +444,11 @@ function TypewriterText({ phrases }: { phrases: string[] }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: [0, 1, 1, 0] }}
         transition={{ repeat: Infinity, duration: 1 }}
-        className="inline-block w-[4px] h-[1.2em] bg-[var(--accent)] ml-1 align-middle"
+        className="inline-block w-[1px] h-[1.2em] bg-[var(--white)] ml-[1px] align-middle"
+        style={{ 
+          verticalAlign: 'middle',
+          transform: 'translateY(-1px)'
+        }}
       />
     </span>
   );

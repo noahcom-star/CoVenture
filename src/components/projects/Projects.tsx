@@ -14,7 +14,8 @@ import {
   CheckIcon,
   XMarkIcon,
   ChatBubbleLeftRightIcon,
-  ClockIcon
+  ClockIcon,
+  InformationCircleIcon
 } from '@heroicons/react/24/outline';
 import { Badge } from '@mui/material';
 
@@ -54,6 +55,7 @@ export default function Projects({ currentUser }: ProjectsProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showMyProjects, setShowMyProjects] = useState(false);
   const [showApplicationModal, setShowApplicationModal] = useState<{ projectId: string } | null>(null);
+  const [showProfileModal, setShowProfileModal] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     fetchProjects();
@@ -360,7 +362,7 @@ export default function Projects({ currentUser }: ProjectsProps) {
               placeholder="Search projects by title, skills, or description..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-[var(--navy-dark)]/50 border border-[var(--accent)]/20 rounded-lg text-[var(--white)] placeholder-[var(--slate)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50"
+              className="w-full pl-10 pr-4 py-3 bg-[var(--navy-dark)]/50 border border-[var(--accent)]/20 rounded-lg text-black placeholder-[var(--slate)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50"
             />
           </div>
         </div>
@@ -369,8 +371,8 @@ export default function Projects({ currentUser }: ProjectsProps) {
             onClick={() => setShowMyProjects(!showMyProjects)}
             className={`flex-1 sm:flex-none px-4 py-2 rounded-lg font-medium transition-all ${
               showMyProjects
-                ? 'bg-[var(--accent)] text-[var(--navy-dark)]'
-                : 'bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20'
+                ? 'bg-transparent text-[var(--accent)] border-2 border-[var(--accent)]'
+                : 'bg-transparent text-[var(--slate)] border-2 border-[var(--slate)] hover:border-[var(--accent)] hover:text-[var(--accent)]'
             }`}
           >
             {showMyProjects ? 'Show All Projects' : 'My Projects'}
@@ -445,7 +447,7 @@ export default function Projects({ currentUser }: ProjectsProps) {
                       {project.required_skills.map((skill, index) => (
                         <span
                           key={index}
-                          className="px-2 py-1 text-xs bg-[var(--accent)]/10 text-[var(--accent)] rounded-full"
+                          className="px-2 py-1 text-xs bg-[var(--navy-dark)]/60 text-[var(--slate)] hover:text-[var(--light-slate)] rounded-full transition-colors"
                         >
                           {skill}
                         </span>
@@ -466,27 +468,30 @@ export default function Projects({ currentUser }: ProjectsProps) {
                   </div>
 
                   {/* Creator Info */}
-                  <div className="flex items-center gap-3 mb-4">
+                  <button 
+                    onClick={() => project.creator && setShowProfileModal(project.creator)}
+                    className="flex items-center gap-3 mb-4 hover:bg-[var(--navy-dark)]/50 p-3 -ml-2 rounded-lg transition-all duration-200 group/profile border border-transparent hover:border-[var(--accent)]/20"
+                  >
                     {project.creator?.avatar_url ? (
                       <img
                         src={project.creator.avatar_url}
                         alt={project.creator.full_name}
-                        className="w-8 h-8 rounded-full object-cover"
+                        className="w-10 h-10 rounded-full object-cover ring-2 ring-[var(--accent)]/30 group-hover/profile:ring-[var(--accent)] transition-all duration-200 shadow-lg"
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
-                        <UserGroupIcon className="w-5 h-5 text-[var(--accent)]" />
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/10 flex items-center justify-center ring-2 ring-[var(--accent)]/30 group-hover/profile:ring-[var(--accent)] transition-all duration-200 shadow-lg">
+                        <UserGroupIcon className="w-6 h-6 text-[var(--accent)]" />
                       </div>
                     )}
-                    <div>
-                      <p className="text-[var(--white)] font-medium line-clamp-1">
+                    <div className="text-left">
+                      <p className="text-[var(--white)] font-medium line-clamp-1 group-hover/profile:text-[var(--accent)] transition-colors duration-200">
                         {project.creator?.full_name || 'Anonymous'}
                       </p>
-                      <p className="text-xs text-[var(--slate)]">
+                      <p className="text-xs text-[var(--slate)] group-hover/profile:text-[var(--light-slate)] transition-colors duration-200">
                         Created {new Date(project.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                  </div>
+                  </button>
 
                   {/* Action Button */}
                   {project.creator_id !== currentUser.user_id && (
@@ -495,10 +500,14 @@ export default function Projects({ currentUser }: ProjectsProps) {
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setShowApplicationModal({ projectId: project.id })}
                       disabled={applications.some(app => app.project_id === project.id)}
-                      className="w-full py-2 px-4 bg-[var(--accent)] text-[var(--navy-dark)] rounded-lg font-medium hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full py-2 px-4 bg-[var(--accent)] text-[var(--navy-dark)] rounded-lg font-medium hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed group/button relative"
                     >
                       {applications.some(app => app.project_id === project.id)
-                        ? 'Already Applied'
+                        ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <span>Already Applied</span>
+                          </div>
+                        )
                         : 'Apply Now'}
                     </motion.button>
                   )}
@@ -555,6 +564,12 @@ export default function Projects({ currentUser }: ProjectsProps) {
             onSubmit={(linkedin, github, website) => 
               handleSubmitApplication(showApplicationModal.projectId, linkedin, github, website)
             }
+          />
+        )}
+        {showProfileModal && (
+          <ProfileModal
+            onClose={() => setShowProfileModal(null)}
+            user={showProfileModal}
           />
         )}
       </AnimatePresence>
@@ -814,6 +829,124 @@ function ApplicationModal({ onClose, onSubmit }: ApplicationModalProps) {
             </button>
           </div>
         </form>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+interface ProfileModalProps {
+  onClose: () => void;
+  user: UserProfile;
+}
+
+function ProfileModal({ onClose, user }: ProfileModalProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.95 }}
+        animate={{ scale: 1 }}
+        exit={{ scale: 0.95 }}
+        className="bg-[var(--navy-dark)] rounded-xl p-6 w-full max-w-lg"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-semibold text-[var(--white)]">Profile</h3>
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-[var(--navy-light)]/30 rounded-lg transition-colors"
+          >
+            <XMarkIcon className="w-5 h-5 text-[var(--slate)]" />
+          </button>
+        </div>
+
+        {/* Profile Info */}
+        <div className="space-y-6">
+          {/* Avatar and Name */}
+          <div className="flex items-center gap-4">
+            {user.avatar_url ? (
+              <img
+                src={user.avatar_url}
+                alt={user.full_name || ''}
+                className="w-16 h-16 rounded-full object-cover ring-4 ring-[var(--accent)]/20"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-[var(--accent)]/10 flex items-center justify-center ring-4 ring-[var(--accent)]/20">
+                <UserGroupIcon className="w-8 h-8 text-[var(--accent)]" />
+              </div>
+            )}
+            <div>
+              <h4 className="text-lg font-semibold text-[var(--white)]">
+                {user.full_name || 'Anonymous'}
+              </h4>
+              {user.bio && (
+                <p className="text-[var(--slate)] mt-1">{user.bio}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Skills */}
+          {user.skills?.length > 0 && (
+            <div>
+              <h5 className="text-sm font-medium text-[var(--light-slate)] mb-2">Skills</h5>
+              <div className="flex flex-wrap gap-2">
+                {user.skills.map((skill) => (
+                  <span
+                    key={skill}
+                    className="px-2 py-1 text-xs bg-[var(--navy-dark)]/60 text-[var(--slate)] rounded-full"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Links */}
+          {(user.linkedin_url || user.github_url || user.portfolio_url) && (
+            <div>
+              <h5 className="text-sm font-medium text-[var(--light-slate)] mb-2">Links</h5>
+              <div className="flex flex-wrap gap-4">
+                {user.linkedin_url && (
+                  <a
+                    href={user.linkedin_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-[var(--accent)] hover:text-[var(--accent)]/80 transition-colors"
+                  >
+                    LinkedIn Profile
+                  </a>
+                )}
+                {user.github_url && (
+                  <a
+                    href={user.github_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-[var(--accent)] hover:text-[var(--accent)]/80 transition-colors"
+                  >
+                    GitHub Profile
+                  </a>
+                )}
+                {user.portfolio_url && (
+                  <a
+                    href={user.portfolio_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-[var(--accent)] hover:text-[var(--accent)]/80 transition-colors"
+                  >
+                    Portfolio
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </motion.div>
     </motion.div>
   );

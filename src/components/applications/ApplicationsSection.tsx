@@ -197,15 +197,15 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
   return (
     <div className="space-y-6">
       <Tab.Group>
-        <Tab.List className="flex space-x-4 bg-[var(--navy-light)]/30 p-1 rounded-lg">
+        <Tab.List className="flex space-x-4 p-1">
           <Tab
             className={({ selected }) =>
               classNames(
-                'w-full py-2 px-4 text-sm font-medium rounded-md',
+                'w-full py-3 px-4 text-base font-medium rounded-lg transition-all duration-200',
                 'focus:outline-none',
                 selected
-                  ? 'bg-[var(--accent)] text-[var(--navy-dark)]'
-                  : 'text-[var(--slate)] hover:text-[var(--white)] hover:bg-[var(--accent)]/10'
+                  ? 'bg-gradient text-[var(--white)] shadow-lg'
+                  : 'bg-[var(--navy-dark)]/30 text-[var(--slate)] hover:text-[var(--white)] hover:bg-[var(--navy-dark)]/50'
               )
             }
           >
@@ -214,11 +214,11 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
           <Tab
             className={({ selected }) =>
               classNames(
-                'w-full py-2 px-4 text-sm font-medium rounded-md',
+                'w-full py-3 px-4 text-base font-medium rounded-lg transition-all duration-200',
                 'focus:outline-none',
                 selected
-                  ? 'bg-[var(--accent)] text-[var(--navy-dark)]'
-                  : 'text-[var(--slate)] hover:text-[var(--white)] hover:bg-[var(--accent)]/10'
+                  ? 'bg-gradient text-[var(--white)] shadow-lg'
+                  : 'bg-[var(--navy-dark)]/30 text-[var(--slate)] hover:text-[var(--white)] hover:bg-[var(--navy-dark)]/50'
               )
             }
           >
@@ -312,21 +312,27 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                     <div className="flex items-center justify-between pt-4 border-t border-[var(--navy-dark)]">
                       <button
                         onClick={() => setSelectedProfile(application.projects?.creator || null)}
-                        className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+                        className="flex items-center space-x-3 hover:opacity-80 transition-opacity group"
                       >
-                        <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
-                          {application.projects?.creator?.avatar_url ? (
-                            <img
-                              src={application.projects.creator.avatar_url}
-                              alt={application.projects.creator.full_name || ''}
-                              className="w-8 h-8 rounded-full object-cover"
-                            />
-                          ) : (
-                            <UserCircleIcon className="w-5 h-5 text-[var(--accent)]" />
-                          )}
+                        <div className="w-10 h-10 rounded-full p-[2px] bg-gradient overflow-hidden transform hover:scale-105 transition-transform">
+                          <div className="w-full h-full rounded-full bg-[var(--navy-dark)] flex items-center justify-center relative">
+                            {application.projects?.creator?.avatar_url ? (
+                              <img
+                                src={application.projects.creator.avatar_url}
+                                alt={application.projects.creator.full_name || ''}
+                                className="w-full h-full rounded-full object-cover"
+                              />
+                            ) : (
+                              <svg className="w-3/5 h-3/5 text-[var(--slate)] group-hover:text-[var(--accent)] transition-colors" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M6 21V19C6 17.9391 6.42143 16.9217 7.17157 16.1716C7.92172 15.4214 8.93913 15 10 15H14C15.0609 15 16.0783 15.4214 16.8284 16.1716C17.5786 16.9217 18 17.9391 18 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            )}
+                            <div className="absolute inset-0 bg-[var(--accent)]/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-full" />
+                          </div>
                         </div>
                         <div>
-                          <p className="text-[var(--white)] font-medium">
+                          <p className="text-[var(--white)] font-medium group-hover:text-[var(--accent)] transition-colors">
                             {application.projects?.creator?.full_name}
                           </p>
                           <p className="text-[var(--slate)] text-sm">Project Creator</p>
@@ -346,11 +352,6 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                               projectId={application.project_id}
                               applicationId={application.id}
                             />
-                            {application.status === 'accepted' && (
-                              <span className="ml-2 text-sm text-[var(--accent)]">
-                                Discuss project details
-                              </span>
-                            )}
                           </div>
                         )}
                       </div>
@@ -446,21 +447,27 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                     <div className="flex items-center justify-between pt-4 border-t border-[var(--navy-dark)]">
                       <button
                         onClick={() => setSelectedProfile(application.profiles || null)}
-                        className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+                        className="flex items-center space-x-3 hover:opacity-80 transition-opacity group"
                       >
-                        <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
-                          {application.profiles?.avatar_url ? (
-                            <img
-                              src={application.profiles.avatar_url}
-                              alt={application.profiles.full_name || ''}
-                              className="w-8 h-8 rounded-full object-cover"
-                            />
-                          ) : (
-                            <UserCircleIcon className="w-5 h-5 text-[var(--accent)]" />
-                          )}
+                        <div className="w-10 h-10 rounded-full p-[2px] bg-gradient overflow-hidden transform hover:scale-105 transition-transform">
+                          <div className="w-full h-full rounded-full bg-[var(--navy-dark)] flex items-center justify-center relative">
+                            {application.profiles?.avatar_url ? (
+                              <img
+                                src={application.profiles.avatar_url}
+                                alt={application.profiles.full_name || ''}
+                                className="w-full h-full rounded-full object-cover"
+                              />
+                            ) : (
+                              <svg className="w-3/5 h-3/5 text-[var(--slate)] group-hover:text-[var(--accent)] transition-colors" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M6 21V19C6 17.9391 6.42143 16.9217 7.17157 16.1716C7.92172 15.4214 8.93913 15 10 15H14C15.0609 15 16.0783 15.4214 16.8284 16.1716C17.5786 16.9217 18 17.9391 18 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            )}
+                            <div className="absolute inset-0 bg-[var(--accent)]/10 opacity-0 group-hover:opacity-100 transition-opacity rounded-full" />
+                          </div>
                         </div>
                         <div>
-                          <p className="text-[var(--white)] font-medium">
+                          <p className="text-[var(--white)] font-medium group-hover:text-[var(--accent)] transition-colors">
                             {application.profiles?.full_name}
                           </p>
                           <p className="text-[var(--slate)] text-sm">Applicant</p>
@@ -492,11 +499,6 @@ export default function ApplicationsSection({ currentUser }: ApplicationsSection
                               projectId={application.project_id}
                               applicationId={application.id}
                             />
-                            {application.status === 'accepted' && (
-                              <span className="ml-2 text-sm text-[var(--accent)]">
-                                Discuss project details
-                              </span>
-                            )}
                           </div>
                         )}
                       </div>

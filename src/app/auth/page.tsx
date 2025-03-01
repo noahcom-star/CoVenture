@@ -12,7 +12,7 @@ export default function AuthPage() {
     <div className="min-h-screen bg-[var(--navy-dark)] py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md mx-auto">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-[var(--white)]">
+          <h2 className="text-3xl font-bold text-gradient">
             {isSignIn ? 'Welcome Back!' : 'Create Your Account'}
           </h2>
           <p className="mt-2 text-[var(--slate)]">
@@ -23,12 +23,12 @@ export default function AuthPage() {
         </div>
 
         <div className="bg-[var(--navy-light)]/50 backdrop-blur-lg rounded-xl shadow-xl overflow-hidden">
-          <div className="flex mb-6 border-b border-[var(--accent)]/10">
+          <div className="flex mb-6">
             <button
               onClick={() => setIsSignIn(true)}
               className={`flex-1 py-4 text-sm font-medium transition-colors ${
                 isSignIn
-                  ? 'text-[var(--accent)] border-b-2 border-[var(--accent)]'
+                  ? 'btn-gradient'
                   : 'text-[var(--slate)] hover:text-[var(--light-slate)]'
               }`}
             >
@@ -38,7 +38,7 @@ export default function AuthPage() {
               onClick={() => setIsSignIn(false)}
               className={`flex-1 py-4 text-sm font-medium transition-colors ${
                 !isSignIn
-                  ? 'text-[var(--accent)] border-b-2 border-[var(--accent)]'
+                  ? 'btn-gradient'
                   : 'text-[var(--slate)] hover:text-[var(--light-slate)]'
               }`}
             >
@@ -53,6 +53,7 @@ export default function AuthPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: isSignIn ? 20 : -20 }}
               transition={{ duration: 0.2 }}
+              className="p-6"
             >
               {isSignIn ? <SignInForm /> : <SignUpForm />}
             </motion.div>
