@@ -218,18 +218,22 @@ export default function Home() {
                       </p>
                       <div className="bg-[rgba(255,255,255,0.03)] rounded-lg p-6 border border-[rgba(255,255,255,0.1)]">
                         <p className="text-lg text-[var(--slate)] leading-relaxed italic">
-                          "As a teenager, you can't just get employed out of nowhere and kick off your career. You won't be handed an internship, you won't be gifted admission to Stanford, and you won't build the next unicorn magically over night (maybe on CoVenture, but that's another story)."
+                          As a teenager, you can't just get employed out of nowhere and kick off your career. You won't be handed an internship, you won't be gifted admission to Stanford, and you won't build the next unicorn magically over night (maybe on CoVenture, but that's another story).
                         </p>
                         <p className="text-xl text-[var(--white)] font-semibold mt-4">
                           If you want to achieve these things, you need to build and create endlessly. Become that outlier. Become uncoventional. Build.
                         </p>
                       </div>
                     </div>
-                    <div className="flex-shrink-0 w-full md:w-1/3">
-                      <div className="aspect-square rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[#9f5afd] p-1">
-                        <div className="w-full h-full rounded-2xl bg-[var(--navy-dark)] flex items-center justify-center">
-                          <SparklesIcon className="w-24 h-24 text-[var(--accent)]" />
-                      </div>
+                    <div className="flex-shrink-0 w-full md:w-2/5">
+                      <div className="aspect-square rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[#9f5afd] p-1.5">
+                        <div className="w-full h-full rounded-2xl bg-[var(--navy-dark)] flex items-center justify-center overflow-hidden">
+                          <img 
+                            src="/outlier.png" 
+                            alt="Outlier" 
+                            className="w-[90%] h-[90%] object-contain transform scale-110"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
