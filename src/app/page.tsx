@@ -33,14 +33,22 @@ export default function Home() {
               transition={{ duration: 0.5 }}
                 >
               <h1 className="text-4xl md:text-7xl font-bold text-gradient mb-6 leading-tight">
-                    How Ambitious Teens Build Great Startups
-                  </h1>
-              <p className="text-lg md:text-xl text-[var(--slate)] font-light leading-relaxed mb-8 max-w-3xl mx-auto">
+                How Ambitious Teens Build Great{' '}
                 <TypewriterText 
                   phrases={[
-                    "Entrepreneurial teens don't have degrees or networks—just what we build. Some launch startups, others use projects to land internships and admissions. CoVenture is where both happen."
+                    "Startups",
+                    "Teams",
+                    "Projects",
+                    "Networks",
+                    "Portfolios",
+                    "Communities",
+                    "Futures",
+                    "Innovations"
                   ]} 
                 />
+                  </h1>
+              <p className="text-lg md:text-xl text-[var(--slate)] font-light leading-relaxed mb-8 max-w-3xl mx-auto">
+                    Entrepreneurial teens don't have degrees or networks—just what we build. Some launch startups, others use projects to land internships and admissions. CoVenture is where both happen.
                   </p>
 
                   {/* CTA Section */}
@@ -233,7 +241,7 @@ export default function Home() {
                             alt="Outlier" 
                             className="w-[90%] h-[90%] object-contain transform scale-110"
                           />
-                        </div>
+                      </div>
                       </div>
                     </div>
                   </div>
@@ -611,18 +619,6 @@ export default function Home() {
                   </motion.div>
                 );
               })}
-                </div>
-
-            <div className="mt-12 text-center">
-              <Link href="/auth">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="btn-gradient py-4 px-8 text-lg font-medium"
-                >
-                  Sign up now
-                </motion.button>
-              </Link>
             </div>
           </div>
         </div>
@@ -673,7 +669,7 @@ export default function Home() {
                   <div className="flex-1 space-y-8">
                     <h2 className="text-4xl font-bold text-gradient">
                       Hey! I'm Noah 👋
-                    </h2>
+              </h2>
                     <div className="space-y-6 text-lg">
                       <p className="text-[var(--slate)] leading-relaxed">
                         Like many of you, I started my journey in tech and entrepreneurship as a teenager. I chased internships and opportunities but had nothing to show—so I started building. I fell in love with it. But finding others my age who shared that passion? Embarrassingly difficult haha.
@@ -695,6 +691,13 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Divider */}
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto">
+          <hr className="border-0 border-t-2 border-[var(--accent)] opacity-100" />
+        </div>
+      </div>
 
       {/* Final CTA */}
       <section className="py-16 bg-[var(--navy-dark)]">
