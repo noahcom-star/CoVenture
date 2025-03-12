@@ -125,7 +125,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[var(--navy-dark)]">
       {/* Header */}
-      <div className="border-b border-[var(--navy-light)] bg-[var(--navy-dark)]/50 backdrop-blur-lg">
+      <div className="sticky top-0 z-50 border-b border-[var(--navy-light)] bg-[var(--navy-dark)]/80 backdrop-blur-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link 
@@ -140,20 +140,20 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Content */}
-      <div className="py-6">
+      <div className="py-6 min-h-[calc(100vh-4rem)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <Tab.Group>
-            <Tab.List className="flex space-x-1 rounded-xl bg-[var(--navy-light)]/50 backdrop-blur-lg p-1">
+            <Tab.List className="flex space-x-1 rounded-xl bg-[var(--navy-light)]/30 backdrop-blur-lg p-1 mb-6 sticky top-[4.5rem] z-40">
               {tabs.map((tab) => (
                 <Tab
                   key={tab.name}
                   className={({ selected }) =>
                     classNames(
-                      'w-full rounded-lg py-2.5 text-sm font-medium leading-5',
+                      'w-full rounded-lg py-3 text-sm font-medium leading-5 transition-all duration-200',
                       'ring-white/60 ring-offset-2 ring-offset-[var(--navy-dark)] focus:outline-none focus:ring-2',
                       selected
-                        ? 'bg-[var(--accent)] text-[var(--navy-dark)]'
-                        : 'text-[var(--slate)] hover:bg-[var(--navy-dark)] hover:text-[var(--white)]'
+                        ? 'bg-[var(--accent)] text-[var(--navy-dark)] shadow-lg transform scale-[1.02]'
+                        : 'text-[var(--slate)] hover:bg-[var(--navy-dark)]/50 hover:text-[var(--white)]'
                     )
                   }
                 >
@@ -165,7 +165,7 @@ export default function DashboardPage() {
               ))}
             </Tab.List>
 
-            <Tab.Panels>
+            <Tab.Panels className="mt-4">
               <Tab.Panel>
                 <Projects currentUser={profile} />
               </Tab.Panel>

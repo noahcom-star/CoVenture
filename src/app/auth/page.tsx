@@ -28,7 +28,7 @@ export default function AuthPage() {
               onClick={() => setIsSignIn(true)}
               className={`flex-1 py-4 text-sm font-medium transition-colors ${
                 isSignIn
-                  ? 'btn-gradient'
+                  ? 'text-[var(--white)] bg-gradient'
                   : 'text-[var(--slate)] hover:text-[var(--light-slate)]'
               }`}
             >
@@ -38,7 +38,7 @@ export default function AuthPage() {
               onClick={() => setIsSignIn(false)}
               className={`flex-1 py-4 text-sm font-medium transition-colors ${
                 !isSignIn
-                  ? 'btn-gradient'
+                  ? 'text-[var(--white)] bg-gradient'
                   : 'text-[var(--slate)] hover:text-[var(--light-slate)]'
               }`}
             >
