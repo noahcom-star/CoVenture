@@ -55,7 +55,7 @@ export default function Home() {
                       </motion.button>
                     </Link>
                     <p className="text-[var(--slate)] text-sm">
-                      Free forever. We know how it is as a broke teenager.
+                      Free forever. We know it can be financially rough at times being a teenager.
                     </p>
                   </div>
             </motion.div>
