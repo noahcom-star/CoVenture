@@ -351,203 +351,183 @@ export default function Projects({ currentUser }: ProjectsProps) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[var(--navy-light)]/30 p-6 rounded-xl">
+    <div className="space-y-12">
+      {/* Header Section - Simplified */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-8">
         <div className="flex-1 w-full">
           <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[var(--slate)]" />
+            <MagnifyingGlassIcon className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[var(--slate)]" />
             <input
               type="text"
-              placeholder="Search projects by title, skills, or description..."
+              placeholder="Search projects..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-[var(--navy-dark)]/50 border border-[var(--accent)]/20 rounded-lg text-black placeholder-[var(--slate)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50"
+              className="w-full pl-12 pr-4 py-4 bg-[var(--navy-light)]/20 rounded-xl text-[var(--navy-dark)] placeholder-[var(--slate)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/50 transition-all"
             />
           </div>
         </div>
-        <div className="flex items-center gap-4 w-full sm:w-auto">
+        <div className="flex items-center gap-6 w-full sm:w-auto">
           <button
             onClick={() => setShowMyProjects(!showMyProjects)}
-            className={`flex-1 sm:flex-none px-4 py-2 rounded-lg font-medium transition-all ${
+            className={`flex-1 sm:flex-none px-6 py-4 rounded-xl font-medium transition-all ${
               showMyProjects
-                ? 'bg-transparent text-[var(--accent)] border-2 border-[var(--accent)]'
-                : 'bg-transparent text-[var(--slate)] border-2 border-[var(--slate)] hover:border-[var(--accent)] hover:text-[var(--accent)]'
+                ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
+                : 'text-[var(--slate)] hover:text-[var(--accent)]'
             }`}
           >
             {showMyProjects ? 'Show All Projects' : 'My Projects'}
           </button>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+          <button
             onClick={() => setShowCreateModal(true)}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-[var(--accent)] text-[var(--navy-dark)] rounded-lg font-medium hover:opacity-90 transition-all"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-4 bg-[var(--accent)] text-[var(--navy-dark)] rounded-xl font-medium hover:opacity-90 transition-all"
           >
             <PlusIcon className="w-5 h-5" />
             <span>Create Project</span>
-          </motion.button>
+          </button>
         </div>
       </div>
 
-      {/* Projects Grid */}
+      {/* Projects Grid - Card Style */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
-          {[1, 2, 3, 4, 5, 6].map((n) => (
-            <div key={n} className="h-[300px] bg-[var(--navy-light)]/30 rounded-xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-pulse">
+          {[1, 2, 3].map((n) => (
+            <div key={n} className="h-[300px] bg-[var(--navy-light)]/20 rounded-2xl shadow-xl shadow-[var(--navy-dark)]/50" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <AnimatePresence mode="popLayout">
-            {projects
-              .filter(project => 
-                (!showMyProjects || project.creator_id === currentUser.user_id) &&
-                (searchQuery === '' || 
-                  project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                  project.required_skills.some(skill => 
-                    skill.toLowerCase().includes(searchQuery.toLowerCase())
-                  ))
-              )
-              .map((project) => (
-                <motion.div
-                  key={project.id}
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="group relative bg-[var(--navy-light)]/30 hover:bg-[var(--navy-light)]/50 rounded-xl p-6 transition-all duration-300 border border-transparent hover:border-[var(--accent)]/20"
-                >
-                  {/* Project Status Badge */}
-                  <div className="absolute top-4 right-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      project.status === 'open' 
-                        ? 'bg-green-500/10 text-green-500' 
-                        : project.status === 'in_progress'
-                        ? 'bg-yellow-500/10 text-yellow-500'
-                        : 'bg-red-500/10 text-red-500'
-                    }`}>
-                      {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
-                    </span>
-                  </div>
+            {filteredProjects.map((project) => (
+              <motion.div
+                key={project.id}
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="group bg-[var(--navy-light)]/20 rounded-2xl p-8 transition-all duration-300 hover:bg-[var(--navy-light)]/30 hover:shadow-2xl hover:shadow-[var(--accent)]/5 hover:-translate-y-1 shadow-xl shadow-[var(--navy-dark)]/50"
+              >
+                {/* Status Badge - Enhanced */}
+                <div className="mb-6">
+                  <span className={`px-4 py-1.5 rounded-full text-xs font-medium ${
+                    project.status === 'open' 
+                      ? 'bg-green-500/10 text-green-400 ring-1 ring-green-400/30' 
+                      : project.status === 'in_progress'
+                      ? 'bg-yellow-500/10 text-yellow-400 ring-1 ring-yellow-400/30'
+                      : 'bg-red-500/10 text-red-400 ring-1 ring-red-400/30'
+                  }`}>
+                    {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+                  </span>
+                </div>
 
-                  {/* Project Title and Description */}
-                  <div className="mb-4">
-                    <h3 className="text-xl font-bold text-[var(--white)] mb-2 line-clamp-1">
-                      {project.title}
-                    </h3>
-                    <p className="text-[var(--slate)] line-clamp-3">
-                      {project.description}
-                    </p>
-                  </div>
+                {/* Project Title and Description - Enhanced */}
+                <div className="mb-8">
+                  <h3 className="text-xl font-bold text-[var(--white)] mb-4 group-hover:text-[var(--accent)] transition-colors">
+                    {project.title}
+                  </h3>
+                  <p className="text-[var(--slate)] line-clamp-2 group-hover:text-[var(--light-slate)] transition-colors">
+                    {project.description}
+                  </p>
+                </div>
 
-                  {/* Required Skills */}
-                  <div className="mb-4">
-                    <div className="flex flex-wrap gap-2">
-                      {project.required_skills.map((skill, index) => (
-                        <span
-                          key={index}
-                          className="px-2 py-1 text-xs bg-[var(--navy-dark)]/60 text-[var(--slate)] hover:text-[var(--light-slate)] rounded-full transition-colors"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
+                {/* Required Skills - Enhanced */}
+                <div className="mb-8">
+                  <div className="flex flex-wrap gap-2">
+                    {project.required_skills.slice(0, 3).map((skill, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1.5 text-xs bg-[var(--navy-dark)]/60 text-[var(--slate)] rounded-full ring-1 ring-[var(--accent)]/10 group-hover:ring-[var(--accent)]/20 transition-colors"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                    {project.required_skills.length > 3 && (
+                      <span className="px-3 py-1.5 text-xs text-[var(--slate)] rounded-full">
+                        +{project.required_skills.length - 3} more
+                      </span>
+                    )}
                   </div>
+                </div>
 
-                  {/* Project Info */}
-                  <div className="flex items-center justify-between text-sm text-[var(--slate)] mb-4">
-                    <div className="flex items-center gap-2">
-                      <UserGroupIcon className="w-4 h-4" />
-                      <span>{project.team_size} members</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CalendarIcon className="w-4 h-4" />
-                      <span>{project.timeline}</span>
-                    </div>
+                {/* Project Info - Enhanced */}
+                <div className="flex items-center justify-between text-sm text-[var(--slate)] mb-8">
+                  <div className="flex items-center gap-2 bg-[var(--navy-dark)]/40 px-3 py-1.5 rounded-full">
+                    <UserGroupIcon className="w-4 h-4" />
+                    <span>{project.team_size} members</span>
                   </div>
+                  <div className="flex items-center gap-2 bg-[var(--navy-dark)]/40 px-3 py-1.5 rounded-full">
+                    <CalendarIcon className="w-4 h-4" />
+                    <span>{project.timeline}</span>
+                  </div>
+                </div>
 
-                  {/* Creator Info */}
+                {/* Creator Info and Action - Enhanced */}
+                <div className="flex items-center justify-between pt-6 border-t border-[var(--navy-dark)]/40">
                   <button 
                     onClick={() => project.creator && setShowProfileModal(project.creator)}
-                    className="flex items-center gap-3 mb-4 hover:bg-[var(--navy-dark)]/50 p-3 -ml-2 rounded-lg transition-all duration-200 group/profile border border-transparent hover:border-[var(--accent)]/20"
+                    className="flex items-center gap-3 group/profile"
                   >
                     {project.creator?.avatar_url ? (
                       <img
                         src={project.creator.avatar_url}
                         alt={project.creator.full_name}
-                        className="w-10 h-10 rounded-full object-cover ring-2 ring-[var(--accent)]/30 group-hover/profile:ring-[var(--accent)] transition-all duration-200 shadow-lg"
+                        className="w-10 h-10 rounded-full object-cover ring-2 ring-[var(--accent)]/20 group-hover/profile:ring-[var(--accent)]/40 transition-all"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/10 flex items-center justify-center ring-2 ring-[var(--accent)]/30 group-hover/profile:ring-[var(--accent)] transition-all duration-200 shadow-lg">
-                        <UserGroupIcon className="w-6 h-6 text-[var(--accent)]" />
+                      <div className="w-10 h-10 rounded-full bg-[var(--navy-dark)]/60 flex items-center justify-center ring-2 ring-[var(--accent)]/20 group-hover/profile:ring-[var(--accent)]/40 transition-all">
+                        <UserGroupIcon className="w-6 h-6 text-[var(--slate)]" />
                       </div>
                     )}
                     <div className="text-left">
-                      <p className="text-[var(--white)] font-medium line-clamp-1 group-hover/profile:text-[var(--accent)] transition-colors duration-200">
+                      <p className="text-[var(--white)] font-medium line-clamp-1 group-hover/profile:text-[var(--accent)] transition-colors">
                         {project.creator?.full_name || 'Anonymous'}
-                      </p>
-                      <p className="text-xs text-[var(--slate)] group-hover/profile:text-[var(--light-slate)] transition-colors duration-200">
-                        Created {new Date(project.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </button>
 
-                  {/* Action Button */}
+                  {/* Action Button - Enhanced */}
                   {project.creator_id !== currentUser.user_id && (
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                    <button
                       onClick={() => setShowApplicationModal({ projectId: project.id })}
                       disabled={applications.some(app => app.project_id === project.id)}
-                      className="w-full py-2 px-4 bg-[var(--accent)] text-[var(--navy-dark)] rounded-lg font-medium hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed group/button relative"
+                      className="px-5 py-2.5 bg-[var(--accent)]/10 text-[var(--accent)] rounded-xl font-medium hover:bg-[var(--accent)]/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed ring-1 ring-[var(--accent)]/20 hover:ring-[var(--accent)]/40"
                     >
                       {applications.some(app => app.project_id === project.id)
-                        ? (
-                          <div className="flex items-center justify-center gap-2">
-                            <span>Already Applied</span>
-                          </div>
-                        )
-                        : 'Apply Now'}
-                    </motion.button>
+                        ? 'Applied'
+                        : 'Apply'}
+                    </button>
                   )}
-                </motion.div>
-              ))}
+                </div>
+              </motion.div>
+            ))}
           </AnimatePresence>
         </div>
       )}
 
-      {/* No Projects Message */}
-      {!loading && projects.filter(project => 
-        (!showMyProjects || project.creator_id === currentUser.user_id) &&
-        (searchQuery === '' || 
-          project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          project.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          project.required_skills.some(skill => 
-            skill.toLowerCase().includes(searchQuery.toLowerCase())
-          ))
-      ).length === 0 && (
-        <div className="text-center py-12">
-          <h3 className="text-xl font-bold text-[var(--white)] mb-2">
+      {/* No Projects Message - Simplified */}
+      {!loading && filteredProjects.length === 0 && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center py-20"
+        >
+          <h3 className="text-2xl font-bold text-[var(--white)] mb-4">
             {showMyProjects ? 'No Projects Created Yet' : 'No Projects Found'}
           </h3>
-          <p className="text-[var(--slate)] mb-6">
+          <p className="text-[var(--slate)] mb-8">
             {showMyProjects 
               ? 'Create your first project to get started!'
               : 'Try adjusting your search or check back later for new projects.'}
           </p>
           {showMyProjects && (
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+            <button
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--accent)] text-[var(--navy-dark)] rounded-lg font-medium hover:opacity-90 transition-all"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-[var(--accent)] text-[var(--navy-dark)] rounded-xl font-medium hover:opacity-90 transition-all"
             >
               <PlusIcon className="w-5 h-5" />
               <span>Create Project</span>
-            </motion.button>
+            </button>
           )}
-        </div>
+        </motion.div>
       )}
 
       {/* Modals */}
